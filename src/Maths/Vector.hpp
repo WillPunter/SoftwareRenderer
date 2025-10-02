@@ -100,6 +100,11 @@ class Vector {
             return data[index];
         };
 
+        /*  Unary negation operator. */
+        Vector<T, N> operator-() {
+            return this->map_elems([](T x) { return -x; });
+        }
+
         /*  Operation-assignment operators - +=, -=. These have the expected
             implementations. */
         Vector<T, N>& operator+=(Vector<T, N>& other) {
@@ -182,7 +187,10 @@ class Vector {
                 (v1, v2, ..., vN)^T
             as this is a typical vector representation in text (it is a row
             vector transposed to produce a column vector). */
-        friend std::ostream& operator<<(std::ostream& output_stream, Vector<T, N> vec) {
+        friend std::ostream& operator<<(
+            std::ostream& output_stream,
+            const Vector<T, N> vec
+        ) {
             output_stream << "(";
 
             for (int i = 0; i < N; i++) {

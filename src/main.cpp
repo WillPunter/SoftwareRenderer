@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "./mathematics/Vector.hpp"
-#include "./mathematics/Matrix.hpp"
+#include "./Maths/Vector.hpp"
+#include "./Maths/Matrix.hpp"
 
 /*  Entry point. */
 int main() {
@@ -26,6 +26,8 @@ int main() {
         }
     }
     std::cout << std::endl;
+
+    std::cout << m1 << std::endl;
 
     //std::cout << make_one() << std::endl;
 
