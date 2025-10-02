@@ -19,6 +19,8 @@
 #include<stdexcept>
 #include<ostream>
 
+namespace Maths {
+
 template <typename T, unsigned int N>
 class Vector {
     public:
@@ -57,15 +59,29 @@ class Vector {
             }
         }
 
-        /*  Subscript operator.
+        /*  Call / access operator.
         
-            Provides array-style access to elements. We return a reference so
+            Provides individual access to elements. We return a reference so
             that we can read from or write to the element with the same
             definition.
             
             An out_of_range exception will be thrown by the check_index call if
-            index is outside of the range [0, N]. */
-        T& operator[](size_t index) {
+            index is outside of the range [0, N - 1].
+            
+            NOTE: we do not use the conventional subscript operator. The reason
+            for this is because syntactic similarity between element accesses
+            for vectors and matrices is desirable (since each row of a matrix
+            can itself be thought of as a vector). The subscript operator ([])
+            only supports a single argument. Therefore, implementing matrix
+            element accesses would require use of [][] syntax, which would
+            require a proxy object to be returned. This is problematic as this
+            type is not really part of the mathematical usage of a matrix, but
+            if made private, can still be bypassed using auto. () offers simple
+            and equally readable syntax (if a little different to other
+            standards) that is consistent for vector and matrix accesses, and
+            for the latter produces no object creation / management overhead or
+            any of the associated issues. */
+        T& operator()(size_t index) {
             this->check_index(index);
             return data[index];
         }
@@ -79,10 +95,28 @@ class Vector {
             
             An out_of_range exc{eption will be thrown by the check_index call if
             index is outside of the range [0, N]. */
-        const T& operator[](int index) const {
+        const T& operator()(int index) const {
             this->check_index(index);
             return data[index];
         };
+
+        /*  Operation-assignment operators - +=, -=. These have the expected
+            implementations. */
+        Vector<T, N>& operator+=(Vector<T, N>& other) {
+            for (int i = 0; i < N; i++) {
+                this->data[i] += other.data[i];
+            }
+
+            return *this;
+        }
+
+        Vector<T, N>& operator-=(Vector<T, N>& other) {
+            for (int i = 0; i < N; i++) {
+                this->data[i] -= other.data[i];
+            }
+
+            return *this;
+        }
 
         /*  Friend functions:
                 We define binary operations (+, -, *, etc.) on vectors as
@@ -96,27 +130,25 @@ class Vector {
                 N template parameters, and the clutter required to add them to
                 a different file. */
         
-        /*  Binary addition - note that we take the arguments by value. While this
-            does add copying overhead, it allows us to use anonymous objects in our
-            code, which is useful for chaining operations together, e.g (v1 + v2) + v3.
-            If we passed by reference then the result of (v1 + v2), which is anonymous,
-            could not be an argument to the following +. */
+        /*  Binary addition - we take arguments as const references. This
+            prevents copies being made whilst also allowing temporaries to be
+            used in an intuitive manner. */
         friend Vector<T, N>
-        operator+(Vector<T, N> lhs, Vector<T, N> rhs) {
+        operator+(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
             return zip_elems(lhs, rhs, [](T x, T y){return x + y; });
         }
 
         /*  Binary subtraction - we take arguments by reference and return by
             value for the same reason as binary addition. */
         friend Vector<T, N>
-        operator-(Vector<T, N> lhs, Vector<T, N> rhs) {
+        operator-(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
             return zip_elems(lhs, rhs, [](T x, T y){ return x - y; });
         }
 
         /*  Scalar multiplication - we apply the * operation to all elements
             to define the mathematical scalar multiplication. */
         friend Vector<T, N>
-        operator*(Vector<T, N> vec, T scalar) {
+        operator*(const Vector<T, N>& vec, T scalar) {
             return vec.map_elems([scalar](T elem) { return scalar * elem; });
         }
 
@@ -124,14 +156,14 @@ class Vector {
             in terms of vector * scalar multiplication (see above for
             details). */
         friend Vector<T, N>
-        operator*(T scalar, Vector<T, N> vec) {
+        operator*(T scalar, const Vector<T, N>& vec) {
             return vec * scalar;
         }
 
         /*  Scalar / dot product. Note that we default-initalise an accumulator
             of type T, so the type used must support this in the expected
             manner. */
-        friend Vector<T, N> dot(Vector<T, N> lhs, Vector<T, N> rhs) {
+        friend Vector<T, N> dot(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
             T sum {};
 
             for (int i = 0; i < N; i++) {
@@ -140,6 +172,9 @@ class Vector {
 
             return sum;
         }
+
+        /*  Cross product - might be best implemented in terms of matrix
+            determinant? TODO. */
 
         /*  Inserting into a stream - we overload the << operator for output
             streams to allow the use of cout and similar. We insert a string
@@ -212,6 +247,8 @@ class Vector {
 
             return res;
         }
+};
+
 };
 
 #endif

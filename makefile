@@ -1,4 +1,4 @@
-./build/main.o: ./src/main.cpp ./src/mathematics/Vector.hpp
+./build/main.o: ./src/main.cpp ./src/mathematics/Vector.hpp ./src/mathematics/Matrix.hpp
 	g++ -c ./src/main.cpp -o ./build/main.o
 
 #./build/Vector.o: ./src/mathematics/Vector.cpp ./src/mathematics/Vector.hpp
