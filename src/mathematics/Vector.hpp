@@ -17,12 +17,17 @@
 
 #include<array>
 #include<stdexcept>
+#include<ostream>
 
 template <typename T, unsigned int N>
 class Vector {
     public:
         /*  Default constructor - set elements to zero. */
-        Vector() {};
+        Vector() {
+            for (int i = 0; i < N; i++) {
+                this->data[i] = 0;
+            }
+        };
     
         /*  Initializer constructor.
         
@@ -56,40 +61,28 @@ class Vector {
         
             Provides array-style access to elements. We return a reference so
             that we can read from or write to the element with the same
-            definition. */
-        T& operator[](int index) {
-            if (index < 0 || index >= N) {
-                throw std::out_of_range(
-                    "Vector error - attempt to access element " +
-                    std::to_string(index) + " in Vector of dimension " +
-                    std::to_string(N) + "."
-                );
-            }
-
+            definition.
+            
+            An out_of_range exception will be thrown by the check_index call if
+            index is outside of the range [0, N]. */
+        T& operator[](size_t index) {
+            this->check_index(index);
             return data[index];
         }
 
-        /*  To string.
+        /*  Subscript operator for const accesses.
         
-            We print vectors in row form, as:
-                (v1, v2, ..., vn)^T
-            This is subject to change depending on how nice it looks in
-            practice. */
-        std::string to_string() const {
-            std::string res = "(";
-
-            for (int i = 0; i < N; i++) {
-                res += std::to_string(data[i]);
-
-                if (i != N - 1) {
-                    res += ", ";
-                }
-            }
-
-            res += ")^T";
-
-            return res;
-        }
+            We still want to support accesses for const Vectors via the
+            subscript operator. To do this, we require a const reference to be
+            returned and the member function to be marked as const (so as to
+            indicate that it does not modify the object).
+            
+            An out_of_range exc{eption will be thrown by the check_index call if
+            index is outside of the range [0, N]. */
+        const T& operator[](int index) const {
+            this->check_index(index);
+            return data[index];
+        };
 
         /*  Friend functions:
                 We define binary operations (+, -, *, etc.) on vectors as
@@ -102,23 +95,123 @@ class Vector {
                 We define friend functions in-place due to the use of the T and
                 N template parameters, and the clutter required to add them to
                 a different file. */
+        
+        /*  Binary addition - note that we take the arguments by value. While this
+            does add copying overhead, it allows us to use anonymous objects in our
+            code, which is useful for chaining operations together, e.g (v1 + v2) + v3.
+            If we passed by reference then the result of (v1 + v2), which is anonymous,
+            could not be an argument to the following +. */
+        friend Vector<T, N>
+        operator+(Vector<T, N> lhs, Vector<T, N> rhs) {
+            return zip_elems(lhs, rhs, [](T x, T y){return x + y; });
+        }
 
-        /*  Binary addition - note that we take the arguments by reference to
-            avoid copying data, and return by value since we must create a new
-            vector to return. */
-        friend Vector<T, N> operator+(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
+        /*  Binary subtraction - we take arguments by reference and return by
+            value for the same reason as binary addition. */
+        friend Vector<T, N>
+        operator-(Vector<T, N> lhs, Vector<T, N> rhs) {
+            return zip_elems(lhs, rhs, [](T x, T y){ return x - y; });
+        }
+
+        /*  Scalar multiplication - we apply the * operation to all elements
+            to define the mathematical scalar multiplication. */
+        friend Vector<T, N>
+        operator*(Vector<T, N> vec, T scalar) {
+            return vec.map_elems([scalar](T elem) { return scalar * elem; });
+        }
+
+        /*  Mathematical scalar multiplication is commutative so we implement
+            in terms of vector * scalar multiplication (see above for
+            details). */
+        friend Vector<T, N>
+        operator*(T scalar, Vector<T, N> vec) {
+            return vec * scalar;
+        }
+
+        /*  Scalar / dot product. Note that we default-initalise an accumulator
+            of type T, so the type used must support this in the expected
+            manner. */
+        friend Vector<T, N> dot(Vector<T, N> lhs, Vector<T, N> rhs) {
+            T sum {};
+
+            for (int i = 0; i < N; i++) {
+                sum += lhs.data[i] * rhs.data[i];
+            }
+
+            return sum;
+        }
+
+        /*  Inserting into a stream - we overload the << operator for output
+            streams to allow the use of cout and similar. We insert a string
+            of the form:
+                (v1, v2, ..., vN)^T
+            as this is a typical vector representation in text (it is a row
+            vector transposed to produce a column vector). */
+        friend std::ostream& operator<<(std::ostream& output_stream, Vector<T, N> vec) {
+            output_stream << "(";
+
+            for (int i = 0; i < N; i++) {
+                output_stream << vec.data[i];
+
+                if (i < N - 1) {
+                    output_stream << ", ";
+                }
+            }
+
+            output_stream << ")^T";
+
+            return output_stream;
+        }
+
+    private:
+        std::array<T, N> data;
+
+        /*  Check index - throws an exception if the provided index is outside
+            of the range [0, N]. Otherwise it does not do anything. */
+        void check_index(size_t index) {
+            if (index >= N) {
+                throw std::out_of_range(
+                    "Vector error - attempt to access element " +
+                    std::to_string(index) + " in Vector of dimension " +
+                    std::to_string(N) + "."
+                );
+            }
+        }
+
+        /*  Unary element-wise operation - this member function takes a functor
+            to be applied to each element (should take a T and produce a T). */
+        template <typename F>
+        Vector<T, N> map_elems(F op) const {
             Vector<T, N> res;
 
             for (int i = 0; i < N; i++) {
-                res.data[i] = lhs.data[i] + rhs.data[i];
+                res.data[i] = op(this->data[i]);
             }
 
+            return res;
+        }
+
+        /*  Binary Element-wise operation - this function is a generic
+            algorithm for doing something on two vectors to produce a new,
+            third vector on an element-by-element basis (e.g. vector addition,
+            vector subtraction, etc.).
+            
+            It is implemented as a private static member function because it
+            should not be part of the public interface (which should only
+            consist of the expected mathematical operations and I/O
+            functionality). All functions that call this are friend functions
+            implementing binary operators (see above). */
+        template <typename F>
+        static Vector<T, N>
+        zip_elems(const Vector<T, N>& v1, const Vector<T, N>& v2, F op) {
+            Vector<T, N> res;
+
+            for (int i = 0; i < N; i++) {
+                res.data[i] = op(v1.data[i], v2.data[i]);
+            }
 
             return res;
-        };
-        
-    private:
-        std::array<T, N> data;
+        }
 };
 
 #endif
