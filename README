@@ -1,0 +1,7 @@
+# 3d Software Renderer
+## Work in progress - documentation still TODO.
+
+## Project TODOs
+The following is a list of work to be done that doesn't afect the correctness of the program on the majority of Ubuntu systems but might affect unusual systems or performance across different systems.
+- Use shared memory images (XShmPutImage extension from X11/extensions/Shm.h - see https://linux.die.net/man/3/xshmputimage for more help).
+- Standardise colour across all systems - currently we assume 24-bit true colour but X does not guarantee support for this.

@@ -12,3 +12,9 @@ run: all
 
 clean:
 	rm -f ./build/*.o ./build/app
+
+./build/Window_x11.o: ./src/System/Linux_x11/Window_x11.cpp ./src/System/Linux_x11/Window_x11.hpp
+	g++ -c ./src/System/Linux_x11/Window_x11.cpp -o ./build/Window_x11.o
+
+test: ./build/Window_x11.o
+	g++ ./tests/main.cpp ./build/Window_x11.o -lX11 -o ./tests/app && ./tests/app

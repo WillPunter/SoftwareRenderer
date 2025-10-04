@@ -1,0 +1,36 @@
+/*  Window.hpp
+
+    Defines an abstract class presenting the window functionality supported by
+    this engine.
+    
+    It also declares the make_window function which should be implemented by
+    all implementations to make a window for the corresponding platofrm.
+    
+    The window functionalities include the provision of a render buffer and an
+    event system. */
+
+#ifndef WINDOW_HPP
+#define WINDOW_HPP
+
+#include <string>
+#include <cstdint>
+#include <memory>
+
+namespace System {
+
+class Window {
+    public:
+        virtual void draw_pixel(
+            int x,
+            int y,
+            uint8_t red,
+            uint8_t green,
+            uint8_t blue
+        ) = 0;
+};
+
+std::unique_ptr<Window> make_window(std::string title, int width, int height);
+
+}
+
+#endif
