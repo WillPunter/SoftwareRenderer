@@ -4,6 +4,7 @@
 #define WINDOW_X11_HPP
 
 #include <X11/Xlib.h>
+#include <vector>
 
 #include "./../Window.hpp"
 
@@ -41,6 +42,8 @@ class Window_x11 : public System::Window {
 
         bool multiplex_event(XEvent* event);
 
+        static int rgb_mask_shift(unsigned long mask);
+
         std::string title;
         int width;
         int height;
@@ -52,7 +55,29 @@ class Window_x11 : public System::Window {
 
         Atom window_manager_destroy_window_id;
 
-        uint32_t* render_buffer;
+        union pixel {
+            /*  Typical RGB linux for X11 - may need adjustment on other
+                systems. If in doubt, just use the provided masks in the Visual
+                structure. */
+            struct {
+                uint8_t blue;
+                uint8_t red;
+                uint8_t green;
+                uint8_t x;
+            } rgb;
+
+            uint32_t data;
+        };
+
+        std::vector<pixel> render_buffer;
+
+        XImage* image_descriptor;
+
+        GC graphics_context;
+
+        int red_mask_shift;
+        int green_mask_shift;
+        int blue_mask_shift;
 };
 
 }
