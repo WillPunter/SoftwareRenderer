@@ -20,6 +20,8 @@ namespace System {
 
 class Window {
     public:
+        virtual bool handle_events() = 0;
+
         virtual void draw_pixel(
             int x,
             int y,
@@ -27,6 +29,9 @@ class Window {
             uint8_t green,
             uint8_t blue
         ) = 0;
+
+        virtual void close_window() = 0;
+        virtual bool is_closed() const = 0;
 };
 
 std::unique_ptr<Window> make_window(std::string title, int width, int height);

@@ -13,8 +13,14 @@ class Window_x11 : public System::Window {
     public:
         Window_x11() = delete;
 
+        bool handle_events() override;
+
         void draw_pixel(int x, int y, uint8_t red, uint8_t green,
             uint8_t blue) override;
+        
+        void close_window() override;
+
+        bool is_closed() const override;
 
         /*  make_unique function is made "friend" as it should be the only
             means of constructing a Window_x11 type. This type is not meant to
@@ -26,8 +32,14 @@ class Window_x11 : public System::Window {
             std::string, int, int);
         
     private:
-        /*  Private constructor to enable */
+        bool open = true;
+        
+        /*  Private constructor - construction should only be done by the
+            make_window factory function, so as to encapsulate platform
+            specific details. */
         Window_x11(std::string title, int width, int height);
+
+        bool multiplex_event(XEvent* event);
 
         std::string title;
         int width;
@@ -37,6 +49,8 @@ class Window_x11 : public System::Window {
 
         using X11_Window = ::Window;
         X11_Window window;
+
+        Atom window_manager_destroy_window_id;
 
         uint32_t* render_buffer;
 };
