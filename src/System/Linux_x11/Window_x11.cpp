@@ -3,6 +3,7 @@
 #include "Window_x11.hpp"
 #include <stdexcept>
 #include <iostream>
+#include <cstring>
 
 namespace System_Linux {
 
@@ -20,6 +21,18 @@ Window_x11::Window_x11(std::string title, int width, int height) :
     if (!this->display) {
         throw std::runtime_error("Error - could not establish connection"
             " to X server.");
+    }
+
+    /*  Check that display endianness is little endian (LSBFirst). This is
+        because we assume little endian in our pixel rendering code, and
+        checking at runtime adds enough performance overhead to pretty much
+        kill the framerate due to the frequency of it's use. There is likely
+        a compile time solution to this, but has not yet been implemented due
+        to it's niche use-case. */
+    if (ImageByteOrder(this->display) != LSBFirst) {
+        throw std::runtime_error("Error - connected display does not support"
+            " little endian byte order. Throwing error due to incompatibility"
+            " with rendering logic.");
     }
 
     /*  Get system default screen id - this is the screen we will create the
@@ -79,8 +92,6 @@ Window_x11::Window_x11(std::string title, int width, int height) :
     /*  Get visual information. */
     Visual* visual_data = DefaultVisual(this->display, screen_id);
 
-    std::cout << "Visual data - " << std::to_string(visual_data->bits_per_rgb) << std::endl;
-
     /*  Note that bits_per_rgb means bits per field for each r, g and b value
         individually - this should be 8 for true colour systems. */
     if (visual_data->bits_per_rgb != 8) {
@@ -88,11 +99,6 @@ Window_x11::Window_x11(std::string title, int width, int height) :
             std::to_string(visual_data->bits_per_rgb) + " when 8 was"
             " expected.");
     }
-
-    /*  Determine shifts for the red, green and blue sections. */
-    this->red_mask_shift = this->rgb_mask_shift(visual_data->red_mask);
-    this->green_mask_shift = this->rgb_mask_shift(visual_data->green_mask);
-    this->blue_mask_shift = this->rgb_mask_shift(visual_data->blue_mask);
 
     /*  Create image descriptor structure to describe renderer. */
     this->image_descriptor = XCreateImage(
@@ -110,24 +116,7 @@ Window_x11::Window_x11(std::string title, int width, int height) :
     /*  Create graphics context. */
     this->graphics_context = XCreateGC(this->display, this->window, 0, 0);
 
-    uint8_t red_val = 200;
-    uint8_t green_val = 50;
-    uint8_t blue_val = 100;
-
-    std::cout << "rgb shift = " << std::to_string(this->red_mask_shift) << ", " << std::to_string(this->green_mask_shift) << ", " << std::to_string(this->blue_mask_shift) << "." << std::endl;
-    std::cout << "rgb mask = " << std::to_string(visual_data->red_mask) << ", " << std::to_string(visual_data->green_mask) << ", " << std::to_string(visual_data->blue_mask) << "." << std::endl;
-
-    /*  Draw default image - draw red. */
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            //this->render_buffer[i * width + j].rgb.green = 255;
-            pixel& pix = render_buffer[i * width + j];
-
-            pix.data = (red_val << this->red_mask_shift) |
-                (green_val << this->green_mask_shift) |
-                (blue_val << this->blue_mask_shift);
-        }
-    }
+    XResizeWindow(this->display, this->window, width * 4, height * 4);
 }
 
 /*  Handle events - the Window interface provides specific information about
@@ -152,9 +141,33 @@ bool Window_x11::handle_events() {
     return frame_continue;
 }
 
+void Window_x11::clear_screen() {
+    std::memset(this->render_buffer.data(), 0, sizeof(pixel) * this->width * this->height);
+}
+
 void Window_x11::draw_pixel(int x, int y, uint8_t red, uint8_t green,
     uint8_t blue) {
-    // TODO.
+    pixel colour = { blue, green, red, 0 };
+    this->render_buffer[y * this->width + x] = colour;
+}
+
+void Window_x11::draw_rectangle(int x0, int y0, int x1, int y1, uint8_t red, uint8_t green, uint8_t blue) {
+    pixel colour = {blue, green, red, 0};
+    
+    x1 = std::min(x1, this->width - 1);
+    y1 = std::min(y1, this->height - 1);
+
+    for (int y = y0; y < y1; y++) {
+        for (int x = x0; x < x1; x++) {
+            this->render_buffer[y * this->width + x] = colour;
+        }
+    }
+};
+
+void Window_x11::update_buffer() {
+    XPutImage(this->display, this->window, this->graphics_context,
+                this->image_descriptor, 0, 0, 0, 0, this->width, this->height);
+    XFlush(this->display);
 }
 
 void Window_x11::close_window() {
@@ -174,8 +187,6 @@ bool Window_x11::multiplex_event(XEvent* event) {
     switch (event->type) {
         case Expose: {
             std::cout << "Expose event." << std::endl;
-            XPutImage(this->display, this->window, this->graphics_context,
-                this->image_descriptor, 0, 0, 0, 0, this->width, this->height);
             break;
         }
 
@@ -197,19 +208,7 @@ bool Window_x11::multiplex_event(XEvent* event) {
         }
     }
 
-    return true;
-}
-
-/*  Get the shift of a mask. We assume, as checked at runtime, that colour
-    masks consist of 8 consecutive 1s with all other bits set to 0. */
-int Window_x11::rgb_mask_shift(unsigned long mask) {
-    int count = 0;
-    while ((mask & 1) != 1 && count < sizeof(unsigned long long) * 8) {
-        mask >>= 1;
-        count ++;
-    }
-
-    return count;
+    return continue_frame;
 }
 
 }

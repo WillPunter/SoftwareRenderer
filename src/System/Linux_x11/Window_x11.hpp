@@ -16,8 +16,14 @@ class Window_x11 : public System::Window {
 
         bool handle_events() override;
 
+        void clear_screen() override;
+
         void draw_pixel(int x, int y, uint8_t red, uint8_t green,
             uint8_t blue) override;
+        
+        void draw_rectangle(int x0, int y0, int x1, int y1, uint8_t red, uint8_t green, uint8_t blue) override;
+        
+        void update_buffer() override;
         
         void close_window() override;
 
@@ -58,11 +64,15 @@ class Window_x11 : public System::Window {
         union pixel {
             /*  Typical RGB linux for X11 - may need adjustment on other
                 systems. If in doubt, just use the provided masks in the Visual
-                structure. */
+                structure.
+                
+                Note that this is just a logical RGBX / RGBA (alpha is unused
+                however, so X is often used as a placeholder) but in little
+                endian. */
             struct {
                 uint8_t blue;
-                uint8_t red;
                 uint8_t green;
+                uint8_t red;
                 uint8_t x;
             } rgb;
 
@@ -74,10 +84,6 @@ class Window_x11 : public System::Window {
         XImage* image_descriptor;
 
         GC graphics_context;
-
-        int red_mask_shift;
-        int green_mask_shift;
-        int blue_mask_shift;
 };
 
 }

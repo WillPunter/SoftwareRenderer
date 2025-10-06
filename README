@@ -5,3 +5,8 @@
 The following is a list of work to be done that doesn't afect the correctness of the program on the majority of Ubuntu systems but might affect unusual systems or performance across different systems.
 - Use shared memory images (XShmPutImage extension from X11/extensions/Shm.h - see https://linux.die.net/man/3/xshmputimage for more help).
 - Standardise colour across all systems - currently we assume 24-bit true colour but X does not guarantee support for this.
+- Standardise byte order across all systems - currently only LSBFirst (little endian) is supported.
+
+## Various Notes
+- I have not yet gotten round to writing proper documentation. Nonetheless, there are some things that are so important that I will write them down here before I forget:
+- I originally planned to have a clean draw_pixel(x, y, r, g, b) abstraction provided by the Window class to the renderer. Unfortunately, this was not performant. Since draw_pixel gets called many times per second, calling the function, as well as bounds-checking, colour shifting, etc. all added up to produce an overhead. When I switched from implementing draw_rectangle in terms of draw_pixel, to just writing to memory directly (i.e. like inlining the draw_pixel calls) I went from ~30FPS to ~350FPS. Therefore, the window will now provide a standardised RGB render buffer to the renderer, which will implement all primitive drawing in terms of raw data access. This is inelegant but the unique performance requirements of software rendering demand it.
