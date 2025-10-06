@@ -45,7 +45,8 @@ class Window {
         virtual bool is_closed() const = 0;
 };
 
-std::unique_ptr<Window> make_window(std::string title, int width, int height);
+std::unique_ptr<Window> make_window(std::string title, int width, int height,
+    int scaling);
 
 }
 

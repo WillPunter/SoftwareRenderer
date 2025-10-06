@@ -7,7 +7,7 @@
 int main() {
     int width = 320;
     int height = 240;
-    std::unique_ptr<System::Window> window = System::make_window("Hello world!!!", width, height);
+    std::unique_ptr<System::Window> window = System::make_window("Hello world!!!", width, height, 2);
 
     int x = 0;
     int y = 100;

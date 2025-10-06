@@ -36,7 +36,7 @@ class Window_x11 : public System::Window {
             window and render buffer and implement the System::Window interface
             to them. */
         friend std::unique_ptr<System::Window> System::make_window(
-            std::string, int, int);
+            std::string, int, int, int);
         
     private:
         bool open = true;
@@ -44,7 +44,7 @@ class Window_x11 : public System::Window {
         /*  Private constructor - construction should only be done by the
             make_window factory function, so as to encapsulate platform
             specific details. */
-        Window_x11(std::string title, int width, int height);
+        Window_x11(std::string title, int width, int height, int scaling);
 
         bool multiplex_event(XEvent* event);
 
@@ -82,7 +82,7 @@ class Window_x11 : public System::Window {
         std::vector<pixel> render_buffer;
         std::vector<pixel> display_buffer;
 
-        static constexpr int scaling = 2;
+        int scaling;
 
         XImage* image_descriptor;
 
