@@ -80,6 +80,9 @@ class Window_x11 : public System::Window {
         };
 
         std::vector<pixel> render_buffer;
+        std::vector<pixel> display_buffer;
+
+        static constexpr int scaling = 2;
 
         XImage* image_descriptor;
 

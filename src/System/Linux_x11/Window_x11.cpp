@@ -10,7 +10,8 @@ namespace System_Linux {
 /*  Constructor - this initialises an X11 window. */
 Window_x11::Window_x11(std::string title, int width, int height) :
     title{title}, width{width}, height{height},
-    render_buffer {(size_t) width * height} {
+    render_buffer {(size_t) width * height},
+    display_buffer {(size_t) width * height * this->scaling * this->scaling} {
     /*  Establish a connection with the X server - X calls this connection a
         "display" (well it's a bit more nuanced - see the X11 docs for more
         information). If it is not possible to establish a connection, throw
@@ -107,8 +108,8 @@ Window_x11::Window_x11(std::string title, int width, int height) :
         24,
         ZPixmap,
         0,
-        (char *) this->render_buffer.data(),
-        this->width, this->height,
+        (char *) this->display_buffer.data(),
+        this->width * this->scaling, this->height * this->scaling,
         32,
         0 /* Compute default bytes per line. */
     );
@@ -116,7 +117,7 @@ Window_x11::Window_x11(std::string title, int width, int height) :
     /*  Create graphics context. */
     this->graphics_context = XCreateGC(this->display, this->window, 0, 0);
 
-    XResizeWindow(this->display, this->window, width * 4, height * 4);
+    XResizeWindow(this->display, this->window, width * this->scaling, height * this->scaling);
 }
 
 /*  Handle events - the Window interface provides specific information about
@@ -165,8 +166,35 @@ void Window_x11::draw_rectangle(int x0, int y0, int x1, int y1, uint8_t red, uin
 };
 
 void Window_x11::update_buffer() {
+    if constexpr (scaling > 1) {
+        pixel* row_ptr = this->display_buffer.data();
+
+        for (int i = 0; i < height; i++) {
+            /*  Upscale render buffer to first row of display buffer. */
+            for (int j = 0; j < width; j++) {
+                for (int k = 0; k < scaling; k++) {
+                    row_ptr[j * this->scaling + k] =
+                        this->render_buffer[i * this->width + j];
+                }
+            }
+            
+            /*  Duplicate for remaining rows. */
+            for (int j = 1; j < this->scaling; j++) {
+                std::memcpy(
+                    (void*) (row_ptr + j * this->width * this->scaling),
+                    row_ptr,
+                    this->width * this->scaling * sizeof(pixel)
+                );
+            }
+
+            /*  Increment to next render buffer row in display buffer (scaling
+                lots of render buffer rows). */
+            row_ptr += this->width * this->scaling * this->scaling;
+        }
+    }
+
     XPutImage(this->display, this->window, this->graphics_context,
-                this->image_descriptor, 0, 0, 0, 0, this->width, this->height);
+                this->image_descriptor, 0, 0, 0, 0, this->width * this->scaling, this->height * this->scaling);
     XFlush(this->display);
 }
 
