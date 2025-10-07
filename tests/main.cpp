@@ -7,7 +7,7 @@
 int main() {
     int width = 320;
     int height = 240;
-    std::unique_ptr<System::Window> window = System::make_window("Hello world!!!", width, height, 2);
+    std::unique_ptr<System::Window> window = System::make_window("Hello world!!!", width, height);
 
     int x = 0;
     int y = 100;
@@ -49,9 +49,8 @@ int main() {
             */
 
             for (int i = 0; i < num_rectangles; i++) {
-                window->draw_rectangle(0, 0, 31, 31, 255, 0, 0);
+                // window->draw_rectangle(0, 0, 31, 31, 255, 0, 0);
             }
-
 
             window->update_buffer();
 

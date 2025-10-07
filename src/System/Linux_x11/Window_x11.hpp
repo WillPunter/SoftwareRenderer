@@ -18,16 +18,13 @@ class Window_x11 : public System::Window {
 
         void clear_screen() override;
 
-        void draw_pixel(int x, int y, uint8_t red, uint8_t green,
-            uint8_t blue) override;
-        
-        void draw_rectangle(int x0, int y0, int x1, int y1, uint8_t red, uint8_t green, uint8_t blue) override;
-        
         void update_buffer() override;
         
         void close_window() override;
 
         bool is_closed() const override;
+
+        std::vector<System::pixel>& get_render_buffer() override;
 
         /*  make_unique function is made "friend" as it should be the only
             means of constructing a Window_x11 type. This type is not meant to
@@ -61,26 +58,8 @@ class Window_x11 : public System::Window {
 
         Atom window_manager_destroy_window_id;
 
-        union pixel {
-            /*  Typical RGB linux for X11 - may need adjustment on other
-                systems. If in doubt, just use the provided masks in the Visual
-                structure.
-                
-                Note that this is just a logical RGBX / RGBA (alpha is unused
-                however, so X is often used as a placeholder) but in little
-                endian. */
-            struct {
-                uint8_t blue;
-                uint8_t green;
-                uint8_t red;
-                uint8_t x;
-            } rgb;
-
-            uint32_t data;
-        };
-
-        std::vector<pixel> render_buffer;
-        std::vector<pixel> display_buffer;
+        std::vector<System::pixel> render_buffer;
+        std::vector<System::pixel> display_buffer;
 
         int scaling;
 

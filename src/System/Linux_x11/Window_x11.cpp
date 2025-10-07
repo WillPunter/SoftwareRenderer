@@ -148,31 +148,13 @@ bool Window_x11::handle_events() {
 }
 
 void Window_x11::clear_screen() {
-    std::memset(this->render_buffer.data(), 0, sizeof(pixel) * this->width * this->height);
+    std::memset(this->render_buffer.data(), 0, sizeof(System::pixel) *
+        this->width * this->height);
 }
-
-void Window_x11::draw_pixel(int x, int y, uint8_t red, uint8_t green,
-    uint8_t blue) {
-    pixel colour = { blue, green, red, 0 };
-    this->render_buffer[y * this->width + x] = colour;
-}
-
-void Window_x11::draw_rectangle(int x0, int y0, int x1, int y1, uint8_t red, uint8_t green, uint8_t blue) {
-    pixel colour = {blue, green, red, 0};
-    
-    x1 = std::min(x1, this->width - 1);
-    y1 = std::min(y1, this->height - 1);
-
-    for (int y = y0; y < y1; y++) {
-        for (int x = x0; x < x1; x++) {
-            this->render_buffer[y * this->width + x] = colour;
-        }
-    }
-};
 
 void Window_x11::update_buffer() {
     if (this->scaling > 1) {
-        pixel* row_ptr = this->display_buffer.data();
+        System::pixel* row_ptr = this->display_buffer.data();
 
         for (int i = 0; i < height; i++) {
             /*  Upscale render buffer to first row of display buffer. */
@@ -188,7 +170,7 @@ void Window_x11::update_buffer() {
                 std::memcpy(
                     (void*) (row_ptr + j * this->width * this->scaling),
                     row_ptr,
-                    this->width * this->scaling * sizeof(pixel)
+                    this->width * this->scaling * sizeof(System::pixel)
                 );
             }
 
@@ -210,6 +192,16 @@ void Window_x11::close_window() {
 
 bool Window_x11::is_closed() const {
     return !this->open;
+}
+
+/*  Return render buffer reference - returning the render buffer provides the
+    renderer with direct access to render memory. This allows for much faster
+    drawing than providing a draw_pixel or similar, arguably neater, interface.
+    The function call overhead and the limited possibility of using functions
+    like memcpy and memset to spped things up makes these interfaces much less
+    efficient. */
+std::vector<System::pixel>& Window_x11::get_render_buffer() {
+    return this->render_buffer;
 }
 
 /*  Multiplex on a given event - check event type and execute the correct
