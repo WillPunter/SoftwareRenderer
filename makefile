@@ -1,20 +1,41 @@
-./build/main.o: ./src/main.cpp ./src/Maths/Vector.hpp ./src/Maths/Matrix.hpp
-	g++ -c ./src/main.cpp -o ./build/main.o
+SRC_PATH := ./src
+SYSTEM_PATH := $(SRC_PATH)/System
+LINUXX11_PATH := $(SYSTEM_PATH)/LinuxX11
+MATHS_PATH := $(SRC_PATH)/Maths
+GRAPHICS_PATH := $(SRC_PATH)/Graphics
 
-#./build/Vector.o: ./src/mathematics/Vector.cpp ./src/mathematics/Vector.hpp
-#	g++ -c ./src/mathematics/Vector.cpp -o ./build/Vector.o
+BUILD_PATH := ./build
+EXAMPLES_PATH := ./examples
 
-all: ./build/main.o
-	g++ ./build/main.o -o ./build/app
+CC := g++
 
-run: all
-	cd ./build && ./app
+CFLAGS := -c
+LFLAGS := -lX11
 
+# System module.
+$(BUILD_PATH)/X11Window.o: $(LINUXX11_PATH)/X11Window.cpp $(LINUXX11_PATH)/X11Window.hpp
+	$(CC) $(CFLAGS) $(LINUXX11_PATH)/X11Window.cpp -o $(BUILD_PATH)/X11Window.o
+
+$(BUILD_PATH)/X11RGBARenderWindow.o: $(BUILD_PATH)/X11Window.o $(LINUXX11_PATH)/X11RGBARenderWindow.cpp $(LINUXX11_PATH)/X11RGBARenderWindow.hpp
+	$(CC) $(CFLAGS) $(LINUXX11_PATH)/X11RGBARenderWindow.cpp -o $(BUILD_PATH)/X11RGBARenderWindow.o
+
+$(BUILD_PATH)/LinuxX11.o: $(BUILD_PATH)/X11RGBARenderWindow.o $(LINUXX11_PATH)/LinuxX11.cpp
+	$(CC) $(CFLAGS) $(LINUXX11_PATH)/LinuxX11.cpp -o $(BUILD_PATH)/LinuxX11.o
+
+Systems_Linux: $(BUILD_PATH)/LinuxX11.o
+
+# Matematics module - all code currenty headers.
+
+# Graphics module - TODO.
+
+# All - compile all modules (do not link into library though).
+all: Systems_Linux
+
+# Examples
+pixels: all
+	$(CC) $(BUILD_PATH)/X11Window.o $(BUILD_PATH)/X11RGBARenderWindow.o $(BUILD_PATH)/LinuxX11.o $(EXAMPLES_PATH)/pixels/main.cpp $(LFLAGS) -o $(BUILD_PATH)/pixels
+	cd build && ./pixels
+
+# Clean
 clean:
-	rm -f ./build/*.o ./build/app
-
-./build/Window_x11.o: ./src/System/Linux_x11/Window_x11.cpp ./src/System/Linux_x11/Window_x11.hpp
-	g++ -c ./src/System/Linux_x11/Window_x11.cpp -o ./build/Window_x11.o
-
-test: ./build/Window_x11.o
-	g++ ./tests/main.cpp ./build/Window_x11.o -lX11 -o ./tests/app && ./tests/app
+	rm -f $(BUILD_PATH)/*.o
