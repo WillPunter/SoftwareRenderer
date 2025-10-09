@@ -27,14 +27,22 @@ Systems_Linux: $(BUILD_PATH)/LinuxX11.o
 # Matematics module - all code currenty headers.
 
 # Graphics module - TODO.
+$(BUILD_PATH)/Rasteriser.o: $(GRAPHICS_PATH)/Rasteriser.cpp $(GRAPHICS_PATH)/Rasteriser.hpp
+	$(CC) $(CFLAGS) $(GRAPHICS_PATH)/Rasteriser.cpp -o $(BUILD_PATH)/Rasteriser.o
+
+Graphics: $(BUILD_PATH)/Rasteriser.o
 
 # All - compile all modules (do not link into library though).
-all: Systems_Linux
+all: Systems_Linux Graphics
 
 # Examples
 pixels: all
 	$(CC) $(BUILD_PATH)/X11Window.o $(BUILD_PATH)/X11RGBARenderWindow.o $(BUILD_PATH)/LinuxX11.o $(EXAMPLES_PATH)/pixels/main.cpp $(LFLAGS) -o $(BUILD_PATH)/pixels
 	cd build && ./pixels
+
+lines: all
+	$(CC) $(BUILD_PATH)/X11Window.o $(BUILD_PATH)/X11RGBARenderWindow.o $(BUILD_PATH)/LinuxX11.o $(BUILD_PATH)/Rasteriser.o $(EXAMPLES_PATH)/lines/main.cpp $(LFLAGS) -o $(BUILD_PATH)/lines
+	cd build && ./lines
 
 # Clean
 clean:

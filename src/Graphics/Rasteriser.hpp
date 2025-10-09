@@ -10,12 +10,25 @@
 #ifndef RASTERISER_HPP
 #define RASTERISER_HPP
 
+#include "./../System/RenderWindow.hpp"
+
 namespace Graphics {
 
-void draw_pixel(RenderWindow& window, int x, int y, uint8_t red,
+struct pixel_coord {
+    int x;
+    int y;
+};
+
+/*  Simple wrapper around window.draw_pixel member function. */
+void draw_pixel(System::RenderWindow& window, int x, int y, uint8_t red,
     uint8_t green, uint8_t blue);
-    window.
-}
+
+/*  Bresenham's algorithm - TODO: write explanation for this in code. */
+void draw_line(System::RenderWindow& window, pixel_coord p1, pixel_coord p2,
+    uint8_t red, uint8_t green, uint8_t blue);
+
+void draw_wireframe_triangle(System::RenderWindow& window, pixel_coord p1,
+    pixel_coord p2, pixel_coord p3, uint8_t red, uint8_t green, uint8_t blue);
 
 }
 
