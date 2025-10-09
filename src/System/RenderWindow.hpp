@@ -28,8 +28,16 @@ class RenderWindow {
             uint8_t green, uint8_t blue) = 0;
 };
 
-std::unique_ptr<RenderWindow> make_render_window(std::string title, int width,
-    int height);
+/*  RenderWindow factory method. This constructs some instance of one of the
+    RenderWindow derived classes under the RenderWindow apparent type. The idea
+    is that different platforms can return different subclasses for their own
+    implementation.
+    
+    NOTE: it is expected that this allocates a new RenderWindow subclass object
+    on the heap (i.e. using new). This is for flexibility purposes, although
+    for most, but not necessarily all, use-cases it is likely that we will want
+    to wrap it in a smart pointer to avoid forgetting to deallocate it. */
+RenderWindow* make_render_window(std::string title, int width, int height);
 
 }
 

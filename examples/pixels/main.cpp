@@ -9,8 +9,8 @@
 
 int main() {
     /*  Create window. */
-    std::unique_ptr<System::RenderWindow> window =
-        System::make_render_window("Simple pixels!!!", 640, 480);
+    std::unique_ptr<System::RenderWindow> window(
+        System::make_render_window("Simple pixels!!!", 640, 480));
     
     while (window->is_open()) {
         window->handle_events();

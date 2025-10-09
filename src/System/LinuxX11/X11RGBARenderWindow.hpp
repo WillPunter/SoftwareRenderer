@@ -28,7 +28,7 @@ class X11RGBARenderWindow : public RenderWindow {
 
         /*  Only allow public construction through non-member factory method
             make_render_window. */
-        friend std::unique_ptr<RenderWindow> make_render_window(
+        friend RenderWindow* make_render_window(
             std::string title, int width, int height);
 
     private:

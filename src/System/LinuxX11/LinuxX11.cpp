@@ -8,7 +8,7 @@
 
 namespace System {
 
-std::unique_ptr<RenderWindow> make_render_window(std::string title, int width,
+RenderWindow* make_render_window(std::string title, int width,
     int height) {
     /*  TODO - identify the details about the video hardware and settings of
         the running device and use it to decide which type of render window
@@ -21,8 +21,7 @@ std::unique_ptr<RenderWindow> make_render_window(std::string title, int width,
     /*  Note that since the X11RGBARenderWindow constructor is private and this
         is a friend function (but std::make_unique is not), we cannot use
         make_unique, hence the slightly odd construction. */
-    return std::unique_ptr<RenderWindow>(new X11RGBARenderWindow(title, width,
-        height));
+    return new X11RGBARenderWindow(title, width, height);
 }
 
 }
