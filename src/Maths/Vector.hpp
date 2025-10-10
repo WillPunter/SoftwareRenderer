@@ -81,7 +81,7 @@ class Vector {
             standards) that is consistent for vector and matrix accesses, and
             for the latter produces no object creation / management overhead or
             any of the associated issues. */
-        T& operator()(size_t index) {
+        T& operator()(int index) {
             this->check_index(index);
             return data[index];
         }
@@ -211,7 +211,7 @@ class Vector {
 
         /*  Check index - throws an exception if the provided index is outside
             of the range [0, N]. Otherwise it does not do anything. */
-        void check_index(size_t index) {
+        void check_index(size_t index) const {
             if (index >= N) {
                 throw std::out_of_range(
                     "Vector error - attempt to access element " +
