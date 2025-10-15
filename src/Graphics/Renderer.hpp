@@ -55,7 +55,10 @@ class Renderer {
             const Camera& camera
         );
 
-        void cull_triangle_back_faces(std::vector<Triangle>& triangles);
+        void cull_triangle_back_faces(
+            std::vector<Triangle>& triangles,
+            std::list<int>& active_indices
+        );
 
         /*  Clip vertices - this clips the vertices by walking through each line
             segment of a triangle. The resulting array of vertices, out, will either

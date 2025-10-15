@@ -47,6 +47,9 @@ void Renderer::render_scene(
         scene.camera
     );
 
+    /*  Cull back faces. */
+    this->cull_triangle_back_faces(triangles, active_indices);
+
     /*  Compute lighting at each vertex (Gouraud Shading) - TODO. */
 
     /*  Clip against near plane in 3d. */
@@ -133,9 +136,33 @@ void Renderer::convert_triangles_to_camera_space(
     }
 }
 
-void Renderer::cull_triangle_back_faces(std::vector<Triangle>& triangles) {
-    /*  TODO - implement using vector and scalar product to check direction
-    relative to viewing direction (Z+). */
+void Renderer::cull_triangle_back_faces(
+    std::vector<Triangle>& triangles,
+    std::list<int>& active_indices
+) {
+    std::list<int>::iterator itr = active_indices.begin();
+
+    Maths::Vector<double, 4> view_dir { 0.0, 0.0, 1.0, 0.0 };
+
+    while (itr != active_indices.end()) {
+        Triangle* curr_triangle = &triangles[*itr];
+
+        /*  Determine normal via cross product. Since we are in camera space at
+            this stage, if the normal points away from the camera, this is a back
+            face and cannot be seen. */
+        Maths::Vector<double, 4> side_1 = curr_triangle->points[1] -
+            curr_triangle->points[0];
+        Maths::Vector<double, 4> side_2 = curr_triangle->points[2] -
+            curr_triangle->points[1];
+
+        Maths::Vector<double, 4> normal = Maths::cross(side_1, side_2);
+
+        if (Maths::dot(normal, view_dir) > 0) {
+            itr = active_indices.erase(itr);
+        } else {
+            itr ++;
+        }
+    }
 }
 
 /*  Make triangles from vertex array - assumes that vertices are in
