@@ -12,7 +12,11 @@ namespace Graphics {
 
 Renderer::Renderer(double fov, double aspect_ratio, double far_plane_distance)
     : fov{fov}, aspect_ratio{aspect_ratio},
-    view_plane_distance{1.0 / tan(fov)}, far_plane_distance{} {};
+    view_plane_distance{1.0 / tan(fov)}, far_plane_distance{},
+    screen_left_bound { -1.0 },
+    screen_right_bound { 1.0 },
+    screen_top_bound { 1.0 / aspect_ratio },
+    screen_bottom_bound { -1.0 / aspect_ratio } {};
 
 void Renderer::render_scene(const Scene& scene) {
     /*  Note that this is an inefficient solution - get it working first, then
@@ -76,33 +80,13 @@ void Renderer::render_scene(const Scene& scene) {
     this->perspective_project_triangles(active_triangles);
 
     /*  Clip triangles - TODO. */
-    // this->clip_screen_bounds(triangles, active_triangles);
+    this->clip_screen_bounds(triangles, active_triangles);
 
     /*  Convert triangles to pixel space. */
     // this->convert_triangles_to_pixel_space(active_triangles);
 
     /*  Raterise triangles. */
     this->rasterise_triangles(active_triangles);
-}
-
-double Renderer::get_sign(double val) {
-    if (val > 0) {
-        return 1.0;
-    } else if (val < 0) {
-        return -1.0;
-    }
-    return 0;
-};
-
-int Renderer::line_plane_intersection(
-    Maths::Vector<double, 4> line_point,
-    Maths::Vector<double, 4> line_direction,
-    Maths::Vector<double, 4> plane_point,
-    Maths::Vector<double, 4> plane_direction_1,
-    Maths::Vector<double, 4> plane_direction_2,
-    Maths::Vector<double, 4>& out
-) {
-    /*  Compute d*/
 }
 
 inline Triangle Renderer::transform_triangle(
@@ -145,116 +129,69 @@ void Renderer::cull_triangle_back_faces(std::vector<Triangle>& triangles) {
     relative to viewing direction (Z+). */
 }
 
-/*  To clip the active triangles against the near plane, we must establish which vertices intersect the plane.*/
+/*  Make triangles from vertex array - assumes that vertices are in
+    an order such that their traversal in order would form a convex
+    polygon. */
+int Renderer::make_triangles(
+    int num_vertices,
+    Maths::Vector<double, 4> in_vertices[4],
+    Triangle* out_triangles[2]
+) {
+    int vertex_counter = 0;
+    int triangle_count = 0;
+
+    /*  Form a triangle out of the first vertex and every subsequent
+        pair of directly connected vertices, so v1 -> v2 -> v3 -> v4
+        becomes (v1 -> v2 -> v3), (v1 -> v3 -> v4). Since the order
+        of each pair of consecutive vertices is preserved, and we
+        simply add v1, this innately preserves the ordering / winding
+        of the shape. */
+    for (int i = 1; i < num_vertices - 1; i++) {
+        out_triangles[triangle_count]->points[0] = in_vertices[0];
+        out_triangles[triangle_count]->points[1] = in_vertices[i];
+        out_triangles[triangle_count]->points[2] = in_vertices[i + 1];
+
+        triangle_count ++;
+    }
+
+    return triangle_count;
+}
+
+/*  To clip the active triangles against the near plane, we invoke the
+    clip_triangles member function with lambdas for determining whether a
+    vertex is in the viewing plane and for finding intersects with the
+    viewing plane. Note that the terms "viewing plane" and "near plane"
+    refer to the same thing. */
 void Renderer::clip_near_plane(
     std::vector<Triangle>& triangles,
     std::list<Triangle*>& active_triangles
 ) {
-    int inside_vertices[3];
-    int outside_vertices[3];
-    int inside_index = 0;
-    int outside_index = 0;
+    clip_triangles(
+        triangles,
+        active_triangles,
 
-    std::list<Triangle*>::iterator itr = active_triangles.begin();
+        /*  Lambda for in_viewing_region operand. In this case the viewing
+            region is the forward side of the near plane (z > view_distance). */
+        [this](Maths::Vector<double, 4> vertex) {
+            return vertex(2) >= this->view_plane_distance;
+        },
 
-    while (itr != active_triangles.end()) {
-        inside_index = 0;
-        outside_index = 0;
-
-        Triangle* curr_triangle = *itr;
-
-        /*  Determine inside and outside vertices. */
-        for (int i = 0; i < 3; i++) {
-            if (curr_triangle->points[i](2) >= this->view_plane_distance) {
-                inside_vertices[inside_index] = i;
-                inside_index ++;
-            } else {
-                outside_vertices[outside_index] = i;
-                outside_index ++;
-            }
+        /*  Lambda for get_intersect operand. This returns a vector storing the
+            point where the line vertex_1 -> vertex_2 intersects the
+            viewing region boundary. That is a precondition of this function
+            and calls on vertex values that do not establish this precondition
+            should be considered undefined as this code needs to be called for
+            all triangles, and validation per triangle would cost clock
+            cycles. */
+        [this](
+            Maths::Vector<double, 4> vertex_1,
+            Maths::Vector<double, 4> vertex_2
+        ) {
+            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
+            double scale = (this->view_plane_distance - vertex_1(2)) / diff(2);
+            return vertex_1 + scale * diff;
         }
-
-        if (outside_index == 3) {
-            /*  All vertices are out of bounds - discard. The call to erase
-                provides a pointer to the next element, hence we skip the
-                increment at the end of the body with a continue. */
-            itr = active_triangles.erase(itr);
-            continue;
-        } else if (outside_index == 2) {
-            /*  Two vertices out of bounds - find intersections of their sides
-                with the viewing plane. */
-            Maths::Vector<double, 4>* inside_vertex =
-                &curr_triangle->points[inside_vertices[0]];
-            Maths::Vector<double, 4>* outside_vertex_1 =
-                &curr_triangle->points[outside_vertices[0]];
-            Maths::Vector<double, 4>* outside_vertex_2 =
-                &curr_triangle->points[outside_vertices[1]];
-
-            Maths::Vector<double, 4> diff_1 = *outside_vertex_1 -
-                *inside_vertex;
-            Maths::Vector<double, 4> diff_2 = *outside_vertex_2 -
-                *inside_vertex;
-
-            /*  Note that an outside and inside vertex can never have the same
-                depth, as they are classified based on their depth. */
-            double z_scale_1 =
-                ((*outside_vertex_1)(2) - this->view_plane_distance) /
-                diff_1(2);
-            double z_scale_2 =
-                ((*outside_vertex_2)[2] - this->view_plane_distance) /
-                diff_2(2);
-            
-            *outside_vertex_1 = *inside_vertex + z_scale_1 * diff_1;
-            *outside_vertex_2 = *inside_vertex + z_scale_2 * diff_2;
-        } else if (outside_index == 1) {
-            /*  One vertex is out of bounds - find the intersection between
-                the lines to the inside vertices and form a quad - then
-                decompose into the two triangles. */
-            Maths::Vector<double, 4>* inside_vertex_1 =
-                &curr_triangle->points[inside_vertices[0]];
-            Maths::Vector<double, 4>* inside_vertex_2 =
-                &curr_triangle->points[inside_vertices[1]];
-            Maths::Vector<double, 4>* outside_vertex =
-                &curr_triangle->points[outside_vertices[0]];
-            
-            Maths::Vector<double, 4> diff_1 = *outside_vertex -
-                *inside_vertex_1;
-            Maths::Vector<double, 4> diff_2 = *outside_vertex -
-                *inside_vertex_2;
-            
-            double scale_1 = (this->view_plane_distance -
-                (*inside_vertex_1)(2)) / diff_1(2);
-            double scale_2 = (this->view_plane_distance -
-                (*inside_vertex_2)(2)) / diff_2(2);
-            
-            Maths::Vector<double, 4> new_vertex_1 = (*inside_vertex_1) +
-                scale_1 * diff_1;
-            Maths::Vector<double, 4> new_vertex_2 = (*inside_vertex_2) +
-                scale_2 * diff_2;
-            
-            /*  Triangle 1 - inside vertices stay the same, outside vertex
-                becomes new_vertex_1. This preserves vector windings. */
-            curr_triangle->points[outside_vertices[0]] = new_vertex_1;
-            
-            /*  Triangle 2 - inside vertex 1 becomes new_vertex_1,
-                outside_vertex becomes new_vertex_2 and  inside_vertex_2
-                stays the same. This preserves the windings. */
-            Triangle triangle_2;
-            triangle_2.points[inside_vertices[0]] = new_vertex_1;
-            triangle_2.points[outside_vertices[0]] = new_vertex_2;
-            triangle_2.points[inside_vertices[1]] = *inside_vertex_2;
-
-            triangles.push_back(triangle_2);
-
-            /*  Add to front of linked list to avoid reiterating over clipped
-                triangles - will not effect the iterator as std::list has a
-                doubly linked list implementation. It is also O(1) because of
-                this. */
-            active_triangles.push_front(&triangles[triangles.size() - 1]);
-        }
-
-        itr ++;
-    }
+    );
 }
 
 /*  For now, we apply perspective projection using the following method:
@@ -300,6 +237,113 @@ void Renderer::perspective_project_triangles(
         triangle_iterator++;
     }
 }
+
+/*  Clip in 2d against the left bound of the screen. */
+void Renderer::clip_left_bound(
+    std::vector<Triangle>& triangles,
+    std::list<Triangle*>& active_triangles
+) {
+    this->clip_triangles(
+        triangles,
+        active_triangles,
+
+        [this](Maths::Vector<double, 4>& vertex) {
+            return vertex(0) > this->screen_left_bound;
+        },
+
+        [this](
+            Maths::Vector<double, 4>& vertex_1,
+            Maths::Vector<double, 4>& vertex_2
+        ) {
+            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
+            double scale = (this->screen_left_bound - vertex_1(0)) / diff(0);
+            return vertex_1 + scale * diff;
+        }
+    );
+}
+
+/*  Clip in 2d against the right bound of the screen. */
+void Renderer::clip_right_bound(
+    std::vector<Triangle>& triangles,
+    std::list<Triangle*>& active_triangles
+) {
+    this->clip_triangles(
+        triangles,
+        active_triangles,
+
+        [this](Maths::Vector<double, 4>& vertex) {
+            return vertex(0) < this->screen_right_bound;
+        },
+
+        [this](
+            Maths::Vector<double, 4>& vertex_1,
+            Maths::Vector<double, 4>& vertex_2
+        ) {
+            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
+            double scale = (this->screen_right_bound - vertex_1(0)) / diff(0);
+            return vertex_1 + scale * diff;
+        }
+    );
+}
+
+/*  Clip in 2d against the top bound of the screen. */
+void Renderer::clip_top_bound(
+    std::vector<Triangle>& triangles,
+    std::list<Triangle*>& active_triangles
+) {
+    this->clip_triangles(
+        triangles,
+        active_triangles,
+
+        [this](Maths::Vector<double, 4>& vertex) {
+            return vertex(1) < this->screen_top_bound;
+        },
+
+        [this](
+            Maths::Vector<double, 4>& vertex_1,
+            Maths::Vector<double, 4>& vertex_2
+        ) {
+            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
+            double scale = (this->screen_top_bound - vertex_1(1)) / diff(1);
+            return vertex_1 + scale * diff;
+        }
+    );
+}
+
+/*  Clip in 2d against the bottom bound of the screen. */
+void Renderer::clip_bottom_bound(
+    std::vector<Triangle>& triangles,
+    std::list<Triangle*>& active_triangles
+) {
+    this->clip_triangles(
+        triangles,
+        active_triangles,
+
+        [this](Maths::Vector<double, 4>& vertex) {
+            return vertex(1) > this->screen_bottom_bound;
+        },
+
+        [this](
+            Maths::Vector<double, 4>& vertex_1,
+            Maths::Vector<double, 4>& vertex_2
+        ) {
+            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
+            double scale = (this->screen_bottom_bound - vertex_1(1)) / diff(1);
+            return vertex_1 + scale * diff;
+        }
+    );
+}
+
+/*  Clip against screen bounds - in 2d. */
+void Renderer::clip_screen_bounds(
+    std::vector<Triangle>& triangles,
+    std::list<Triangle*>& active_triangles
+) {
+    this->clip_left_bound(triangles, active_triangles);
+    this->clip_right_bound(triangles, active_triangles);
+    this->clip_top_bound(triangles, active_triangles);
+    this->clip_bottom_bound(triangles, active_triangles);
+};
 
 void Renderer::rasterise_triangles(std::list<Triangle*>& active_triangles) {
 
