@@ -43,6 +43,8 @@ int main() {
 
     Graphics::Renderer renderer(45.0, 640.0 / 480.0, 1000.0);
 
+    Graphics::Camera camera;
+
     while (window->is_open()) {
         window->handle_events();
 
@@ -51,9 +53,12 @@ int main() {
         test_model.rotation(1) += 0.01;
         test_model.rotation(2) += 0.005;
 
+        camera.rotation(2) += 0.1;
+
         /*  Construct scene. */
         Graphics::Scene scene {
-            std::vector<Graphics::Model*> { &test_model }
+            std::vector<Graphics::Model*> { &test_model },
+            camera
         };
 
         /*  Render scene. */

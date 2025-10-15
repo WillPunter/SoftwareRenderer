@@ -23,38 +23,6 @@ void Renderer::render_scene(
     System::RenderWindow& render_window,
     const Scene& scene
 ) {
-    /*  Note that this is an inefficient solution - get it working first, then
-        optimise the rendering pipeline. In particular think about how:
-            We can avoid making redundant copies of triangles - how can we add
-            and remove triangles from the container quickly (ideally in constant
-            time) to support clipping.
-            
-        Ideal operation:
-            Extract triangles from models in worldspace (necessary copies must
-            be constructed as meshes cannot be modified).
-            
-            Modify triangles by transforming with respect to camera space.
-            
-            Clip triangles against back plane - remove, add and modify
-            triangles as necessary (how can we do this fast?).
-            
-            Project all triangles onto the viewing plane.
-            
-            Clip all triangles against screen bounds - remove, add and
-            modify triangles as necessary (also think about how this can be
-            done fast).
-        
-        Optimisation ideas:
-            Maintain a triangle buffer of all possible triangles used. New
-            triangles may be added to this, but never removed (a vector would
-            work well for this with sufficient space reserved).
-            Then keep a list of pointers to active triangles (need a structure
-            which can be iterated in O(n) for which active triangles can be
-            easily added and removed - a linked list would be superb for this
-            as order of triangles does not matter). */
-
-    /*  We currently have a ist of pointers to models. We want to build a list
-        of all triangles in worldspace (copies). */
     std::vector<Triangle> triangles;
     std::list<int> active_indices;
 
@@ -72,7 +40,12 @@ void Renderer::render_scene(
         }
     }
 
-    /*  Transform triangles to camera space - TODO. */
+    /*  Transform triangles to camera space. */
+    this->convert_triangles_to_camera_space(
+        triangles,
+        active_indices,
+        scene.camera
+    );
 
     /*  Compute lighting at each vertex (Gouraud Shading) - TODO. */
 
@@ -128,9 +101,36 @@ void Renderer::build_triangles_list_from_models(
 }
 
 void Renderer::convert_triangles_to_camera_space(
-    std::vector<Triangle>& triangles
+    std::vector<Triangle>& triangles,
+    std::list<int>& active_indices,
+    const Camera& camera
 ) {
-   /*  TODO - implement with camera structure. */
+    /*  Build camera transformation - first we translate all the world
+        by the reverse of the camera position to move the "camera" to the
+        centre of the scene. Then we rotate, also by the reverse of the
+        camera, and in the order y-axis, then x-axis, then z-axis. */
+    Maths::Matrix<double, 4, 4> camera_transform = Maths::make_rotation_world(
+        -camera.rotation(0),
+        -camera.rotation(1),
+        -camera.rotation(2)
+    ) * Maths::make_translation(
+        -camera.position(0),
+        -camera.position(1),
+        -camera.position(2)
+    );
+
+    std::list<int>::iterator itr = active_indices.begin();
+
+    while (itr != active_indices.end()) {
+        Triangle* curr_triangle = &triangles[*itr];
+
+        *curr_triangle = this->transform_triangle(
+            *curr_triangle,
+            camera_transform
+        );
+
+        itr ++;
+    }
 }
 
 void Renderer::cull_triangle_back_faces(std::vector<Triangle>& triangles) {

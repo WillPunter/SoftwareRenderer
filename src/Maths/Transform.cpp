@@ -60,8 +60,8 @@ Matrix<double, 4, 4> make_rotation_model(double x, double y, double z) {
 }
 
 Matrix<double, 4, 4> make_rotation_world(double x, double y, double z) {
-    return make_rotation_yz_plane(x) * make_rotation_xz_plane(y) *
-        make_rotation_xy_plane(z);
+    return make_rotation_xy_plane(z) * make_rotation_yz_plane(x) *
+        make_rotation_xz_plane(y);
 }
 
 Matrix<double, 4, 4> make_translation(double x, double y, double z) {

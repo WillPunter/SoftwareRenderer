@@ -18,8 +18,14 @@
 
 namespace Graphics {
 
+struct Camera {
+    Maths::Vector<double, 4> position;
+    Maths::Vector<double, 4> rotation;
+};
+
 struct Scene {
     std::vector<Model*> models;
+    Camera camera;
 };
 
 class Renderer {
@@ -44,7 +50,9 @@ class Renderer {
         );
 
         void convert_triangles_to_camera_space(
-            std::vector<Triangle>& triangles
+            std::vector<Triangle>& triangles,
+            std::list<int>& active_indices,
+            const Camera& camera
         );
 
         void cull_triangle_back_faces(std::vector<Triangle>& triangles);
