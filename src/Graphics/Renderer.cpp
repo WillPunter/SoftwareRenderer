@@ -4,6 +4,7 @@
 
 #include "Renderer.hpp"
 #include "./../Maths/Transform.hpp"
+#include "Rasteriser.hpp"
 #include <cmath>
 #include <list>
 #include <iterator>
@@ -18,7 +19,10 @@ Renderer::Renderer(double fov, double aspect_ratio, double far_plane_distance)
     screen_top_bound { 1.0 / aspect_ratio },
     screen_bottom_bound { -1.0 / aspect_ratio } {};
 
-void Renderer::render_scene(const Scene& scene) {
+void Renderer::render_scene(
+    System::RenderWindow& render_window,
+    const Scene& scene
+) {
     /*  Note that this is an inefficient solution - get it working first, then
         optimise the rendering pipeline. In particular think about how:
             We can avoid making redundant copies of triangles - how can we add
@@ -52,7 +56,7 @@ void Renderer::render_scene(const Scene& scene) {
     /*  We currently have a ist of pointers to models. We want to build a list
         of all triangles in worldspace (copies). */
     std::vector<Triangle> triangles;
-    std::list<Triangle*> active_triangles;
+    std::list<int> active_indices;
 
     size_t triangle_count = 0;
 
@@ -63,7 +67,7 @@ void Renderer::render_scene(const Scene& scene) {
         /*  Transform triangles to worldspace. */
         for (const Triangle& t : m->mesh->triangles) {
             triangles.push_back(this->transform_triangle(t, matrix_model));
-            active_triangles.push_back(&triangles[triangle_count]);
+            active_indices.push_back(triangle_count);
             triangle_count ++;
         }
     }
@@ -73,20 +77,25 @@ void Renderer::render_scene(const Scene& scene) {
     /*  Compute lighting at each vertex (Gouraud Shading) - TODO. */
 
     /*  Clip against near plane in 3d. */
-    this->clip_near_plane(triangles, active_triangles);
+    this->clip_near_plane(triangles, active_indices);
 
     /*  Project triangles into clip space - preserving z coordinate for
         depth comparisons and comparing against the near and far planes. */
-    this->perspective_project_triangles(active_triangles);
+    this->perspective_project_triangles(triangles, active_indices);
 
-    /*  Clip triangles - TODO. */
-    this->clip_screen_bounds(triangles, active_triangles);
+    /*  Clip triangles against screen bounds. */
+    this->clip_screen_bounds(triangles, active_indices);
 
     /*  Convert triangles to pixel space. */
-    // this->convert_triangles_to_pixel_space(active_triangles);
+    this->convert_triangles_to_pixel_space(
+        triangles,
+        active_indices,
+        render_window.get_width(),
+        render_window.get_height()
+    );
 
     /*  Raterise triangles. */
-    this->rasterise_triangles(active_triangles);
+    this->rasterise_triangles(render_window, triangles, active_indices);
 }
 
 inline Triangle Renderer::transform_triangle(
@@ -104,7 +113,7 @@ inline Triangle Renderer::transform_triangle(
 
 void Renderer::build_triangles_list_from_models(
     std::vector<Triangle>& triangles,
-    std::list<Triangle*>& active_triangles,
+    std::list<int>& active_indices,
     std::vector<Model*>& models
 ) {
     for (const Model* m : models) {
@@ -113,7 +122,7 @@ void Renderer::build_triangles_list_from_models(
         
         for (const Triangle& t : m->mesh->triangles) {
             triangles.push_back(transform_triangle(t, model_transform_matrix));
-            active_triangles.push_back(&triangles[triangles.size() - 1]);
+            active_indices.push_back(triangles.size());
         }
     }
 }
@@ -135,7 +144,7 @@ void Renderer::cull_triangle_back_faces(std::vector<Triangle>& triangles) {
 int Renderer::make_triangles(
     int num_vertices,
     Maths::Vector<double, 4> in_vertices[4],
-    Triangle* out_triangles[2]
+    Triangle out_triangles[2]
 ) {
     int vertex_counter = 0;
     int triangle_count = 0;
@@ -147,9 +156,9 @@ int Renderer::make_triangles(
         simply add v1, this innately preserves the ordering / winding
         of the shape. */
     for (int i = 1; i < num_vertices - 1; i++) {
-        out_triangles[triangle_count]->points[0] = in_vertices[0];
-        out_triangles[triangle_count]->points[1] = in_vertices[i];
-        out_triangles[triangle_count]->points[2] = in_vertices[i + 1];
+        out_triangles[triangle_count].points[0] = in_vertices[0];
+        out_triangles[triangle_count].points[1] = in_vertices[i];
+        out_triangles[triangle_count].points[2] = in_vertices[i + 1];
 
         triangle_count ++;
     }
@@ -164,11 +173,11 @@ int Renderer::make_triangles(
     refer to the same thing. */
 void Renderer::clip_near_plane(
     std::vector<Triangle>& triangles,
-    std::list<Triangle*>& active_triangles
+    std::list<int>& active_indices
 ) {
     clip_triangles(
         triangles,
-        active_triangles,
+        active_indices,
 
         /*  Lambda for in_viewing_region operand. In this case the viewing
             region is the forward side of the near plane (z > view_distance). */
@@ -217,14 +226,14 @@ void Renderer::clip_near_plane(
     point operations in software though (which do not translate to time
     overhead in hardware due to the massive level of parallelism). */
 void Renderer::perspective_project_triangles(
-    std::list<Triangle*>& active_triangles
+    std::vector<Triangle>& triangles,
+    std::list<int>& active_indices
 ) {
     /*  Project all vertices. */
-    std::list<Triangle*>::iterator triangle_iterator
-        = active_triangles.begin();
+    std::list<int>::iterator itr = active_indices.begin();
     
-    while (triangle_iterator != active_triangles.end()) {
-        Triangle* curr_tri = *triangle_iterator;
+    while (itr != active_indices.end()) {
+        Triangle* curr_tri = &triangles[*itr];
 
         /*  Project all vertices. */
         for (int i = 0; i < 3; i++) {
@@ -234,18 +243,18 @@ void Renderer::perspective_project_triangles(
             curr_tri->points[i](1) *= z_near_div_z;
         }
 
-        triangle_iterator++;
+        itr++;
     }
 }
 
 /*  Clip in 2d against the left bound of the screen. */
 void Renderer::clip_left_bound(
     std::vector<Triangle>& triangles,
-    std::list<Triangle*>& active_triangles
+    std::list<int>& active_indices
 ) {
     this->clip_triangles(
         triangles,
-        active_triangles,
+        active_indices,
 
         [this](Maths::Vector<double, 4>& vertex) {
             return vertex(0) > this->screen_left_bound;
@@ -265,11 +274,11 @@ void Renderer::clip_left_bound(
 /*  Clip in 2d against the right bound of the screen. */
 void Renderer::clip_right_bound(
     std::vector<Triangle>& triangles,
-    std::list<Triangle*>& active_triangles
+    std::list<int>& active_indices
 ) {
     this->clip_triangles(
         triangles,
-        active_triangles,
+        active_indices,
 
         [this](Maths::Vector<double, 4>& vertex) {
             return vertex(0) < this->screen_right_bound;
@@ -289,11 +298,11 @@ void Renderer::clip_right_bound(
 /*  Clip in 2d against the top bound of the screen. */
 void Renderer::clip_top_bound(
     std::vector<Triangle>& triangles,
-    std::list<Triangle*>& active_triangles
+    std::list<int>& active_indices
 ) {
     this->clip_triangles(
         triangles,
-        active_triangles,
+        active_indices,
 
         [this](Maths::Vector<double, 4>& vertex) {
             return vertex(1) < this->screen_top_bound;
@@ -313,11 +322,11 @@ void Renderer::clip_top_bound(
 /*  Clip in 2d against the bottom bound of the screen. */
 void Renderer::clip_bottom_bound(
     std::vector<Triangle>& triangles,
-    std::list<Triangle*>& active_triangles
+    std::list<int>& active_indices
 ) {
     this->clip_triangles(
         triangles,
-        active_triangles,
+        active_indices,
 
         [this](Maths::Vector<double, 4>& vertex) {
             return vertex(1) > this->screen_bottom_bound;
@@ -337,16 +346,79 @@ void Renderer::clip_bottom_bound(
 /*  Clip against screen bounds - in 2d. */
 void Renderer::clip_screen_bounds(
     std::vector<Triangle>& triangles,
-    std::list<Triangle*>& active_triangles
+    std::list<int>& active_indices
 ) {
-    this->clip_left_bound(triangles, active_triangles);
-    this->clip_right_bound(triangles, active_triangles);
-    this->clip_top_bound(triangles, active_triangles);
-    this->clip_bottom_bound(triangles, active_triangles);
-};
+    this->clip_left_bound(triangles, active_indices);
+    this->clip_right_bound(triangles, active_indices);
+    this->clip_top_bound(triangles, active_indices);
+    this->clip_bottom_bound(triangles, active_indices);
+}
 
-void Renderer::rasterise_triangles(std::list<Triangle*>& active_triangles) {
+/*  Convert triangles to pixel space. */
+void Renderer::convert_triangles_to_pixel_space(
+    std::vector<Triangle>& triangles,
+    std::list<int>& active_indices,
+    int buffer_width,
+    int buffer_height
+) {
+    std::list<int>::iterator itr = active_indices.begin();
 
+    while (itr != active_indices.end()) {
+        Triangle* curr_triangle = &triangles[*itr];
+
+        for (int i = 0; i < 3; i++) {
+            curr_triangle->points[i](0) = round(
+                ((curr_triangle->points[i](0) - this->screen_left_bound) /
+                (this->screen_right_bound - this->screen_left_bound)) *
+                (buffer_width - 1)
+            );
+            
+            curr_triangle->points[i](1) = (buffer_height - 1) - round(
+                ((curr_triangle->points[i](1) - this->screen_bottom_bound) /
+                (this->screen_top_bound - this->screen_bottom_bound)) *
+                (buffer_height - 1)
+            );
+        }
+
+        itr ++;
+    }
+}
+
+/*  Rasterise triangles - for now, we simply just invoke the wireframe triangle
+    function from the rasteriser. */
+void Renderer::rasterise_triangles(
+    System::RenderWindow& render_window,
+    std::vector<Triangle>& triangles,
+    std::list<int>& active_indices
+) {
+    std::list<int>::iterator itr = active_indices.begin();
+
+    while (itr != active_indices.end()) {
+        Triangle* curr_triangle = &triangles[*itr];
+
+        draw_wireframe_triangle(
+            render_window,
+
+            {
+                (int) floor(curr_triangle->points[0](0)),
+                (int) floor(curr_triangle->points[0](1))
+            },
+
+            {
+                (int) floor(curr_triangle->points[1](0)),
+                (int) floor(curr_triangle->points[1](1))
+            },
+
+            {
+                (int) floor(curr_triangle->points[2](0)),
+                (int) floor(curr_triangle->points[2](1))
+            },
+
+            255, 0, 0
+        );
+
+        itr ++;
+    }
 }
 
 }

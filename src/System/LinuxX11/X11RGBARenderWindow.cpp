@@ -71,6 +71,14 @@ inline void X11RGBARenderWindow::draw_pixel(int x, int y, uint8_t red,
     this->rgba_buffer[y * this->window.width + x] = pixel_val;
 }
 
+int X11RGBARenderWindow::get_width() {
+    return this->window.width;
+}
+
+int X11RGBARenderWindow::get_height() {
+    return this->window.height;
+}
+
 /*  Prerequisite - rgb mask is of form 0b0...1...1...0, i.e. a string of 1s
     surrounded by zero or more 0's on each side. */
 uint8_t X11RGBARenderWindow::compute_shift_from_rgb_mask(

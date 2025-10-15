@@ -10,6 +10,7 @@
 #define RENDERER_HPP
 
 #include "./../Maths/Vector.hpp"
+#include "./../System/RenderWindow.hpp"
 #include "Model.hpp"
 
 #include <list>
@@ -25,7 +26,10 @@ class Renderer {
     public:
         Renderer(double fov, double aspect_ratio, double far_plane_distance);
 
-        void render_scene(const Scene& scene);
+        void render_scene(
+            System::RenderWindow& render_window,
+            const Scene& scene
+        );
 
     private:     
         Triangle transform_triangle(
@@ -35,7 +39,7 @@ class Renderer {
 
         void build_triangles_list_from_models(
             std::vector<Triangle>& triangles,
-            std::list<Triangle*>& active_triangles,
+            std::list<int>& active_indices,
             std::vector<Model*>& models
         );
 
@@ -120,7 +124,7 @@ class Renderer {
         int make_triangles(
             int num_vertices,
             Maths::Vector<double, 4> in_vertices[4],
-            Triangle* out_triangles[2]
+            Triangle out_triangles[2]
         );
 
         /*  Clip triangles - another template function, this time that clips
@@ -130,18 +134,18 @@ class Renderer {
         template <typename F, typename G>
         void clip_triangles(
             std::vector<Triangle>& triangles,
-            std::list<Triangle*>& active_triangles,
+            std::list<int>& active_indices,
             F in_viewing_region,
             G get_intersect
         ) {
-            std::list<Triangle*>::iterator itr = active_triangles.begin();
+            std::list<int>::iterator itr = active_indices.begin();
             Maths::Vector<double, 4> clipped_vertices[4];
             int num_clipped_vertices = 0;
             Triangle out_triangles[2];
             int num_triangles = 0;
 
-            while (itr != active_triangles.end()) {
-                Triangle* curr_triangle = *itr;
+            while (itr != active_indices.end()) {
+                Triangle* curr_triangle = &triangles[*itr];
 
                 /*  Clip all vertices to obtain nothing, a triangle or a
                     quad. */
@@ -164,7 +168,7 @@ class Renderer {
                     /*  Remove current triangle - fully clipped. Note that the
                         erase member function on std::list returns the next
                         iterator, so we can skip the increment below. */
-                    itr = active_triangles.erase(itr);
+                    itr = active_indices.erase(itr);
                     continue;
                 } else if (num_triangles == 1) {
                     /*  Copy resulting triangle to current triangle address. */
@@ -173,8 +177,8 @@ class Renderer {
                     /*  Copy resulting triangle and add new triangle. */
                     *curr_triangle = out_triangles[0];
                     triangles.push_back(out_triangles[1]);
-                    active_triangles.push_front(
-                        &triangles[triangles.size() - 1]
+                    active_indices.push_front(
+                        triangles.size() - 1
                     );
                 }
 
@@ -184,40 +188,50 @@ class Renderer {
 
         void clip_near_plane(
             std::vector<Triangle>& triangles,
-            std::list<Triangle*>& active_triangles
+            std::list<int>& active_indices
         );
 
         void perspective_project_triangles(
-            std::list<Triangle*>& active_triangles
+            std::vector<Triangle>& triangles,
+            std::list<int>& active_indices
         );
 
         void clip_left_bound(
             std::vector<Triangle>& triangles,
-            std::list<Triangle*>& active_triangles
+            std::list<int>& active_indices
         );
 
         void clip_right_bound(
             std::vector<Triangle>& triangles,
-            std::list<Triangle*>& active_triangles
+            std::list<int>& active_indices
         );
 
         void clip_top_bound(
             std::vector<Triangle>& triangles,
-            std::list<Triangle*>& active_triangles
+            std::list<int>& active_indices
         );
 
         void clip_bottom_bound(
             std::vector<Triangle>& triangles,
-            std::list<Triangle*>& active_triangles
+            std::list<int>& active_indices
         );
 
         void clip_screen_bounds(
             std::vector<Triangle>& triangles,
-            std::list<Triangle*>& active_triangles
+            std::list<int>& active_indices
+        );
+
+        void convert_triangles_to_pixel_space(
+            std::vector<Triangle>& triangles,
+            std::list<int>& active_indices,
+            int buffer_width,
+            int buffer_height
         );
     
         void rasterise_triangles(
-            std::list<Triangle*>& active_triangles
+            System::RenderWindow& render_window,
+            std::vector<Triangle>& triangles,
+            std::list<int>& active_indices
         );
 
         double fov;

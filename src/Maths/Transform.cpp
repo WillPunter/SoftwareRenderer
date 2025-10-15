@@ -79,7 +79,7 @@ Matrix<double, 4, 4> make_homogeneous_projection(double plane_distance) {
         0, plane_distance, 0, 0,
         0, 0, plane_distance, 0,
         0, 0, 1, 0
-    }
+    };
 }
 
 }

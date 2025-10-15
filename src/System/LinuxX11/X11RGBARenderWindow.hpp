@@ -25,6 +25,10 @@ class X11RGBARenderWindow : public RenderWindow {
 
         void draw_pixel(int x, int y, uint8_t red, uint8_t green,
             uint8_t blue) override;
+        
+        int get_width() override;
+
+        int get_height() override;
 
         /*  Only allow public construction through non-member factory method
             make_render_window. */

@@ -26,6 +26,10 @@ class RenderWindow {
 
         virtual void draw_pixel(int width, int height, uint8_t red,
             uint8_t green, uint8_t blue) = 0;
+        
+        virtual int get_width() = 0;
+
+        virtual int get_height() = 0;
 };
 
 /*  RenderWindow factory method. This constructs some instance of one of the
