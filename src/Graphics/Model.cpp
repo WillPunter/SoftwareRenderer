@@ -5,7 +5,7 @@
 
 namespace Graphics {
 
-Maths::Matrix<double, 4, 4> model_transform(Model& model) {
+Maths::Matrix<double, 4, 4> model_transform(const Model& model) {
     return Maths::make_translation(
         model.position(0),
         model.position(1),

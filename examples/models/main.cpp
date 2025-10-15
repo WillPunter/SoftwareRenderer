@@ -13,7 +13,7 @@
 int main() {
     /*  Create window. */
     std::unique_ptr<System::RenderWindow> window(
-        System::make_render_window("Simple pixels!!!", 640, 480));
+        System::make_render_window("Triangles", 640, 480));
     
     Graphics::Triangle test_triangle {
         Maths::Vector<double, 4>{-1.0, 0.0, 0.0, 1.0},

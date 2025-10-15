@@ -38,7 +38,7 @@ struct Model {
 
 /*  To transform a model into world space, first scale, then rotate and then
     translate. */
-Maths::Matrix<double, 4, 4> model_transform(Model& model);
+Maths::Matrix<double, 4, 4> model_transform(const Model& model);
 
 }
 

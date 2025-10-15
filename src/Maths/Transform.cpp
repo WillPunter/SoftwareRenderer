@@ -16,7 +16,7 @@ Matrix<double, 4, 4> make_enlargement(double x, double y, double z) {
         0, 0, z, 0,
         0, 0, 0, 1
     };
-};
+}
 
 Matrix<double, 4, 4> make_rotation_yz_plane(double x) {
     double sin_x = sin(x);
@@ -28,7 +28,7 @@ Matrix<double, 4, 4> make_rotation_yz_plane(double x) {
         0, -sin_x, cos_x, 0,
         0, 0,      0,     1
     };
-};
+}
 
 Matrix<double, 4, 4> make_rotation_xz_plane(double y) {
     double sin_y = sin(y);
@@ -40,7 +40,7 @@ Matrix<double, 4, 4> make_rotation_xz_plane(double y) {
         sin_y, 0, cos_y,  0,
         0,     0, 0,      1
     };
-};
+}
 
 Matrix<double, 4, 4> make_rotation_xy_plane(double z) {
     double sin_z = sin(z);
@@ -52,17 +52,17 @@ Matrix<double, 4, 4> make_rotation_xy_plane(double z) {
         0,      0,     1, 0,
         0,      0,     0, 1
     };
-};
+}
 
 Matrix<double, 4, 4> make_rotation_model(double x, double y, double z) {
     return make_rotation_xz_plane(y) * make_rotation_xy_plane(z) *
         make_rotation_yz_plane(x);
-};
+}
 
 Matrix<double, 4, 4> make_rotation_world(double x, double y, double z) {
     return make_rotation_yz_plane(x) * make_rotation_xz_plane(y) *
         make_rotation_xy_plane(z);
-};
+}
 
 Matrix<double, 4, 4> make_translation(double x, double y, double z) {
     return Matrix<double, 4, 4> {
@@ -71,6 +71,15 @@ Matrix<double, 4, 4> make_translation(double x, double y, double z) {
         0, 0, 1, z,
         0, 0, 0, 1
     };
-};
+}
+
+Matrix<double, 4, 4> make_homogeneous_projection(double plane_distance) {
+    return Matrix<double, 4, 4> {
+        plane_distance, 0, 0, 0,
+        0, plane_distance, 0, 0,
+        0, 0, plane_distance, 0,
+        0, 0, 1, 0
+    }
+}
 
 }

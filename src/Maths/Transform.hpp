@@ -41,6 +41,9 @@ Matrix<double, 4, 4> make_rotation_world(double x, double y, double z);
 /*  Translation matrix. */
 Matrix<double, 4, 4> make_translation(double x, double y, double z);
 
+/*  Homogeneous projection. */
+Matrix<double, 4, 4> make_homogeneous_projection(double plane_distance);
+
 }
 
 #endif

@@ -21,6 +21,7 @@
 
 namespace Maths {
 
+/*  Forward declare internal friend classes. */
 template <typename T, unsigned int N>
 class Vector {
     public:
@@ -105,8 +106,8 @@ class Vector {
             return this->map_elems([](T x) { return -x; });
         }
 
-        /*  Operation-assignment operators - +=, -=. These have the expected
-            implementations. */
+        /*  Operation-assignment operators - +=, -= for other vectors *= for
+            scalars. These have the expected implementations. */
         Vector<T, N>& operator+=(Vector<T, N>& other) {
             for (int i = 0; i < N; i++) {
                 this->data[i] += other.data[i];
@@ -118,6 +119,14 @@ class Vector {
         Vector<T, N>& operator-=(Vector<T, N>& other) {
             for (int i = 0; i < N; i++) {
                 this->data[i] -= other.data[i];
+            }
+
+            return *this;
+        }
+
+        Vector<T, N>& operator*=(T scalar) {
+            for (int i = 0; i < N; i++) {
+                this->data[i] *= scalar;
             }
 
             return *this;
@@ -163,19 +172,6 @@ class Vector {
         friend Vector<T, N>
         operator*(T scalar, const Vector<T, N>& vec) {
             return vec * scalar;
-        }
-
-        /*  Scalar / dot product. Note that we default-initalise an accumulator
-            of type T, so the type used must support this in the expected
-            manner. */
-        friend Vector<T, N> dot(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
-            T sum {};
-
-            for (int i = 0; i < N; i++) {
-                sum += lhs.data[i] * rhs.data[i];
-            }
-
-            return sum;
         }
 
         /*  Cross product - might be best implemented in terms of matrix
@@ -256,6 +252,30 @@ class Vector {
             return res;
         }
 };
+
+/*  Scalar / dot product. Note that we default-initalise an accumulator
+    of type T, so the type used must support this in the expected
+    manner. */
+template<typename T, unsigned int N>
+T dot(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
+    T sum {};
+
+    for (int i = 0; i < N; i++) {
+        sum += lhs(i) * rhs(i);
+    }
+
+    return sum;
+}
+
+/*  Cross product - compute a vector normal to the two provided. */
+template<typename T>
+Vector<T, 4> cross(const Vector<T, 4>& lhs, const Vector<T, 4>& rhs) {
+    return {
+        lhs(1) * rhs(2) - lhs(2) * rhs(1),
+        lhs(2) * rhs(0) - lhs(0) * rhs(2),
+        lhs(0) * rhs(1) - lhs(1) * rhs(0)
+    };
+}
 
 };
 
