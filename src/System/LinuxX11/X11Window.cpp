@@ -1,7 +1,7 @@
 /*  X11Window.cpp */
 
 #include "X11Window.hpp"
-#include <X11/keysym.h>
+#include <X11/XKBlib.h>
 #include <stdexcept>
 #include <iostream>
 
@@ -160,9 +160,10 @@ bool X11Window::multiplex_event(XEvent& event) {
         }
 
         case KeyPress: {
-            KeySym key_symbol = XKeycodeToKeysym(
+            KeySym key_symbol = XkbKeycodeToKeysym(
                 this->server_connection,
                 event.xkey.keycode,
+                0,
                 0
             );
 
@@ -198,9 +199,10 @@ bool X11Window::multiplex_event(XEvent& event) {
         }
 
         case KeyRelease: {
-            KeySym key_symbol = XKeycodeToKeysym(
+            KeySym key_symbol = XkbKeycodeToKeysym(
                 this->server_connection,
                 event.xkey.keycode,
+                0,
                 0
             );
 
