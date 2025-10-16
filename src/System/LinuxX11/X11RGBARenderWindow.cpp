@@ -2,6 +2,7 @@
 
 #include "X11RGBARenderWindow.hpp"
 #include <cstring>
+#include <iostream>
 
 namespace System {
 
@@ -77,6 +78,10 @@ int X11RGBARenderWindow::get_width() {
 
 int X11RGBARenderWindow::get_height() {
     return this->window.height;
+}
+
+KeyState X11RGBARenderWindow::get_key(KeySymbol key_id) {
+    return window.get_key(key_id);
 }
 
 /*  Prerequisite - rgb mask is of form 0b0...1...1...0, i.e. a string of 1s

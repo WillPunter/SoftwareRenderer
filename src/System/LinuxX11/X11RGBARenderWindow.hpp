@@ -30,6 +30,8 @@ class X11RGBARenderWindow : public RenderWindow {
 
         int get_height() override;
 
+        KeyState get_key(KeySymbol key_id) override;
+
         /*  Only allow public construction through non-member factory method
             make_render_window. */
         friend RenderWindow* make_render_window(

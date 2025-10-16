@@ -12,6 +12,51 @@
 
 namespace System {
 
+/*  Different platforms encode the same keys with different numbers. Hence, we
+    provide a platform independent set of key encodings that can be used by
+    applications using the library. */
+enum class KeySymbol {
+    SPACE = 32,
+
+    ARROW_LEFT  = 37,
+    ARROW_UP    = 38,
+    ARROW_RIGHT = 39,
+    ARROW_DOWN  = 40,
+
+    A = 65,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z
+};
+
+enum class KeyState {
+    KEY_UP,
+    KEY_DOWN,
+    KEY_UNDEFINED
+};
+
 class RenderWindow {
     public:
         virtual bool handle_events() = 0;
@@ -30,6 +75,8 @@ class RenderWindow {
         virtual int get_width() = 0;
 
         virtual int get_height() = 0;
+
+        virtual KeyState get_key(KeySymbol key_id) = 0;
 };
 
 /*  RenderWindow factory method. This constructs some instance of one of the

@@ -53,7 +53,33 @@ int main() {
         test_model.rotation(1) += 0.01;
         test_model.rotation(2) += 0.005;
 
-        camera.rotation(2) += 0.1;
+        //if (window->get_key(32) == System::KeyState::KEY_DOWN) {
+        //    camera.rotation(2) += 0.1;
+        //}
+
+        if (window->get_key(
+            System::KeySymbol::ARROW_LEFT) == System::KeyState::KEY_DOWN
+        ) {
+            camera.rotation(1) += 0.01;
+        }
+
+        if (window->get_key(
+            System::KeySymbol::ARROW_RIGHT) == System::KeyState::KEY_DOWN
+        ) {
+            camera.rotation(1) -= 0.01;
+        }
+
+        if (window->get_key(
+            System::KeySymbol::ARROW_UP) == System::KeyState::KEY_DOWN
+        ) {
+            camera.rotation(0) += 0.01;
+        }
+
+        if (window->get_key(
+            System::KeySymbol::ARROW_DOWN) == System::KeyState::KEY_DOWN
+        ) {
+            camera.rotation(0) -= 0.01;
+        }
 
         /*  Construct scene. */
         Graphics::Scene scene {
