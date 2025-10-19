@@ -423,6 +423,47 @@ void Renderer::rasterise_triangles(
     while (itr != active_indices.end()) {
         Triangle* curr_triangle = &triangles[*itr];
 
+        draw_shaded_triangle(
+            render_window,
+
+            {
+                static_cast<int>(floor(curr_triangle->points[0](0))),
+                static_cast<int>(floor(curr_triangle->points[0](1))),
+                curr_triangle->points[0](2),
+                1.0,
+                255,
+                0,
+                0,
+                0,
+                0
+            },
+
+            {
+                static_cast<int>(floor(curr_triangle->points[1](0))),
+                static_cast<int>(floor(curr_triangle->points[1](1))),
+                curr_triangle->points[1](2),
+                1.0,
+                0,
+                255,
+                0,
+                0,
+                0
+            },
+
+            {
+                static_cast<int>(floor(curr_triangle->points[2](0))),
+                static_cast<int>(floor(curr_triangle->points[2](1))),
+                curr_triangle->points[2](2),
+                1.0,
+                0,
+                0,
+                255,
+                0,
+                0
+            }
+        );
+
+        /*
         draw_wireframe_triangle(
             render_window,
 
@@ -443,6 +484,7 @@ void Renderer::rasterise_triangles(
 
             255, 0, 0
         );
+        */
 
         itr ++;
     }

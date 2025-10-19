@@ -90,6 +90,47 @@ int main() {
         /*  Render scene. */
         renderer.render_scene(*window, scene);
 
+        /*  Draw triangle */
+        /*
+        Graphics::draw_shaded_triangle(
+            *window,
+            Graphics::pixel_coord  {
+                600,  // x
+                300,  // y
+                1.0, // depth
+                1.0, // intensity
+                255, // r
+                0,   // g
+                0,   // b
+                1,   // tex x
+                1    // tex y
+            },
+
+            Graphics::pixel_coord  {
+                200, // x
+                144,  // y
+                1.0, // depth
+                1.0, // intensity
+                0, // r
+                255,   // g
+                0,   // b
+                1,   // tex x
+                1    // tex y
+            },
+
+            Graphics::pixel_coord  {
+                100, // x
+                32, // y
+                1.0, // depth
+                1.0, // intensity
+                0,   // r
+                0,   // g
+                255, // b
+                1,   // tex x
+                1    // tex y
+            }
+        );*/
+
         window->display_render_buffer();
     }
 

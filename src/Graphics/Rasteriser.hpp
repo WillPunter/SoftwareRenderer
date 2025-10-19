@@ -17,6 +17,13 @@ namespace Graphics {
 struct pixel_coord {
     int x;
     int y;
+    double depth = 1.0; /*  Note that we may substitute in 1/z here too. */
+    double intensity = 1.0;
+    double red = 0;
+    double green = 0;
+    double blue = 0;
+    double tex_x; /*   Texture coordinates. */
+    double tex_y;
 };
 
 /*  Simple wrapper around window.draw_pixel member function. */
@@ -29,6 +36,20 @@ void draw_line(System::RenderWindow& window, pixel_coord p1, pixel_coord p2,
 
 void draw_wireframe_triangle(System::RenderWindow& window, pixel_coord p1,
     pixel_coord p2, pixel_coord p3, uint8_t red, uint8_t green, uint8_t blue);
+
+void draw_shaded_row(
+    System::RenderWindow& window,
+    int y,
+    pixel_coord p1,
+    pixel_coord p2
+);
+
+void draw_shaded_triangle(
+    System::RenderWindow& window,
+    pixel_coord p1,
+    pixel_coord p2,
+    pixel_coord p3
+);
 
 }
 
