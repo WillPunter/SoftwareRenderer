@@ -9,6 +9,8 @@
 #include <list>
 #include <iterator>
 
+#include <iostream>
+
 namespace Graphics {
 
 Renderer::Renderer(double fov, double aspect_ratio, double far_plane_distance)
@@ -50,7 +52,8 @@ void Renderer::render_scene(
     /*  Cull back faces. */
     this->cull_triangle_back_faces(triangles, active_indices);
 
-    /*  Compute lighting at each vertex (Gouraud Shading) - TODO. */
+    /*  Compute lighting at each vertex (Gouraud Shading). */
+    this->compute_triangle_lighting(triangles, active_indices, scene.lights);
 
     /*  Clip against near plane in 3d. */
     this->clip_near_plane(triangles, active_indices);
@@ -165,6 +168,82 @@ void Renderer::cull_triangle_back_faces(
     }
 }
 
+void Renderer::compute_triangle_lighting(
+    std::vector<Triangle>& triangles,
+    const std::list<int>& active_indices,
+    const std::vector<Light>& lights
+) {
+    /*  Iterate through active triangles, compute normals and compute
+        intensities. */
+    std::list<int>::const_iterator itr = active_indices.begin();
+
+    while (itr != active_indices.end()) {
+        Triangle* curr_triangle = &triangles[*itr];
+
+        /*  Iterate through lights. */
+        for (int i = 0; i < lights.size(); i++) {
+            /*  Determine type. */
+            if (lights[i].type == Graphics::LightType::AMBIENT) {
+                for (int j = 0; j < 3; j++) {
+                    curr_triangle->intensities[j] += lights[i].intensity;
+                }
+            } else if (lights[i].type == Graphics::LightType::DIRECTION) {
+                /*  Compute normal. */
+                Maths::Vector<double, 4> vec_1 = curr_triangle->points[1] -
+                    curr_triangle->points[0];
+                Maths::Vector<double, 4> vec_2 = curr_triangle->points[2] -
+                    curr_triangle->points[0];
+                Maths::Vector<double, 4> normal =
+                    Maths::normalise(Maths::cross(vec_1, vec_2));
+                
+                std::cout << "Normal = " << normal << std::endl;
+
+                /*  Compute dot with light direction. */
+                double angle_intensity = Maths::dot(
+                    normal,
+                    Maths::normalise(lights[i].vec)
+                );
+
+                std::cout << "Angle intensity = " << std::to_string(angle_intensity) << std::endl;
+
+                for (int j = 0; j < 3; j++) {
+                    curr_triangle->intensities[j] += angle_intensity *
+                        lights[i].intensity;
+                    std::cout << "intensity " << std::to_string(j) << " = " << std::to_string(curr_triangle->intensities[j]) << std::endl;
+                }
+            } else if (lights[i].type == Graphics::LightType::POINT) {
+                /*  Compute angle with each vertex. */
+                for (int j = 0; j < 3; j++) {
+                    Maths::Vector<double, 4> direction = Maths::normalise(
+                        curr_triangle->points[j] - lights[i].vec
+                    );
+
+                    double scale = Maths::dot(
+                        direction,
+                        Maths::normalise(curr_triangle->points[j])
+                    );
+
+                    curr_triangle->intensities[j] += scale *
+                        lights[i].intensity;
+                }
+            }
+        }
+
+        /*  Clamp intensities to range (0, 1). */
+        for (int i = 0; i < 3; i++) {
+            if (curr_triangle->intensities[i] < 0.0) {
+                curr_triangle->intensities[i] = 0.0;
+            } else if (curr_triangle->intensities[i] > 1.0) {
+                curr_triangle->intensities[i] = 1.0;
+            }
+        }
+
+        std::cout << "Intensities = " << std::to_string(curr_triangle->intensities[0]) << " " << std::to_string(curr_triangle->intensities[1]) << " " << std::to_string(curr_triangle->intensities[2]) << std::endl;
+
+        itr ++;
+    }
+}
+
 /*  Make triangles from vertex array - assumes that vertices are in
     an order such that their traversal in order would form a convex
     polygon. */
@@ -261,6 +340,7 @@ void Renderer::perspective_project_triangles(
     
     while (itr != active_indices.end()) {
         Triangle* curr_tri = &triangles[*itr];
+        std::cout << "Active Intensities = " << std::to_string(curr_tri->intensities[0]) << " " << std::to_string(curr_tri->intensities[1]) << " " << std::to_string(curr_tri->intensities[2]) << std::endl;
 
         /*  Project all vertices. */
         for (int i = 0; i < 3; i++) {
@@ -423,6 +503,8 @@ void Renderer::rasterise_triangles(
     while (itr != active_indices.end()) {
         Triangle* curr_triangle = &triangles[*itr];
 
+        std::cout << "Intensities = " << std::to_string(curr_triangle->intensities[0]) << " " << std::to_string(curr_triangle->intensities[1]) << " " << std::to_string(curr_triangle->intensities[2]) << std::endl;
+
         draw_shaded_triangle(
             render_window,
 
@@ -430,7 +512,7 @@ void Renderer::rasterise_triangles(
                 static_cast<int>(floor(curr_triangle->points[0](0))),
                 static_cast<int>(floor(curr_triangle->points[0](1))),
                 curr_triangle->points[0](2),
-                1.0,
+                curr_triangle->intensities[0],
                 255,
                 0,
                 0,
@@ -442,7 +524,7 @@ void Renderer::rasterise_triangles(
                 static_cast<int>(floor(curr_triangle->points[1](0))),
                 static_cast<int>(floor(curr_triangle->points[1](1))),
                 curr_triangle->points[1](2),
-                1.0,
+                curr_triangle->intensities[1],
                 0,
                 255,
                 0,
@@ -454,7 +536,7 @@ void Renderer::rasterise_triangles(
                 static_cast<int>(floor(curr_triangle->points[2](0))),
                 static_cast<int>(floor(curr_triangle->points[2](1))),
                 curr_triangle->points[2](2),
-                1.0,
+                curr_triangle->intensities[2],
                 0,
                 0,
                 255,

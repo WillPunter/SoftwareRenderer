@@ -12,6 +12,7 @@
 #include "./../Maths/Vector.hpp"
 #include "./../System/RenderWindow.hpp"
 #include "Model.hpp"
+#include "./../Maths/Transform.hpp"
 
 #include <list>
 #include <vector>
@@ -23,8 +24,21 @@ struct Camera {
     Maths::Vector<double, 4> rotation;
 };
 
+enum class LightType {
+    AMBIENT,
+    DIRECTION,
+    POINT
+};
+
+struct Light {
+    LightType type;
+    double intensity;
+    Maths::Vector<double, 4> vec;
+};
+
 struct Scene {
     std::vector<Model*> models;
+    std::vector<Light> lights;
     Camera camera;
 };
 
@@ -58,6 +72,13 @@ class Renderer {
         void cull_triangle_back_faces(
             std::vector<Triangle>& triangles,
             std::list<int>& active_indices
+        );
+
+        /*  Compute triangle lighting in scene. */
+        void compute_triangle_lighting(
+            std::vector<Triangle>& triangles,
+            const std::list<int>& active_indices,
+            const std::vector<Light>& lights
         );
 
         /*  Clip vertices - this clips the vertices by walking through each line

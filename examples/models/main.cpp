@@ -41,6 +41,20 @@ int main() {
         Maths::Vector<double, 4> { 0.0, 0.0, 0.0, 0.0 }
     };
 
+    std::vector<Graphics::Light> lights {
+        Graphics::Light {
+            Graphics::LightType::AMBIENT,
+            0.3,
+            Maths::Vector<double, 4> { 0.0, 0.0, 0.0, 0.0 }
+        },
+
+        Graphics::Light {
+            Graphics::LightType::DIRECTION,
+            0.5,
+            Maths::Vector<double, 4> { 1.0, -1.0, 0.0, 0.0 }
+        }
+    };
+
     Graphics::Renderer renderer(45.0, 640.0 / 480.0, 1000.0);
 
     Graphics::Camera camera;
@@ -84,6 +98,7 @@ int main() {
         /*  Construct scene. */
         Graphics::Scene scene {
             std::vector<Graphics::Model*> { &test_model },
+            lights,
             camera
         };
 

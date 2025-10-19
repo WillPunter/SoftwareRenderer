@@ -9,7 +9,21 @@
 #include "Matrix.hpp"
 #include "Vector.hpp"
 
+#include <cmath>
+
 namespace Maths {
+
+/*  Normal vector normalised under Euclidean (L2) norm. */
+template<unsigned int N>
+Vector<double, N> normalise(Vector<double, N> vec) {
+    double sum_sq = 0;
+
+    for (int i = 0; i < N; i++) {
+        sum_sq += vec(i) * vec(i);
+    }
+
+    return (1.0 / std::sqrt(sum_sq)) * vec;
+}
 
 /*  Construct NxN identity matrix. */
 template<unsigned int N>

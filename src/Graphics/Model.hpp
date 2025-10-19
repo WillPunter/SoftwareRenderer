@@ -13,6 +13,7 @@ namespace Graphics {
 
 struct Triangle {
     Maths::Vector<double, 4> points[3];
+    double intensities[3];
 };
 
 struct Mesh {

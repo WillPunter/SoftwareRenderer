@@ -100,6 +100,16 @@ void draw_wireframe_triangle(
     draw_line(window, p3, p1, red, green, blue);  
 }
 
+static double clamp(double val, double low, double high) {
+    if (val < low) {
+        return low;
+    } else if(val > high) {
+        return high;
+    }
+
+    return val;
+}
+
 /*  Draw shaded pixel row - precondition is that p1.x <= p2.x and that
     p1.y == p2.y.
     
@@ -207,9 +217,9 @@ void draw_shaded_row(
             window,
             i,
             y,
-            static_cast<uint8_t>(r),
-            static_cast<uint8_t>(g),
-            static_cast<uint8_t>(b)
+            static_cast<uint8_t>(clamp(r * intensity, 0, 255)),
+            static_cast<uint8_t>(clamp(g * intensity, 0, 255)),
+            static_cast<uint8_t>(clamp(b * intensity, 0, 255))
         );
 
         /*  Increment interpolation steps. */
@@ -221,16 +231,6 @@ void draw_shaded_row(
         tex_x_div_z += tex_x_div_z_step;
         tex_y_div_z += tex_y_div_z_step;
     }
-}
-
-static double clamp(double val, double low, double high) {
-    if (val < low) {
-        return low;
-    } else if(val > high) {
-        return high;
-    }
-
-    return val;
 }
 
 /*  Precondition - the depths of all of the provided coordinates are non-zero.
