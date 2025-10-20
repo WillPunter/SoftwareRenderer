@@ -15,12 +15,6 @@ int main() {
     /*  Create window. */
     std::unique_ptr<System::RenderWindow> window(
         System::make_render_window("Models", 640, 480));
-    
-    Graphics::Triangle test_triangle {
-        Maths::Vector<double, 4>{-1.0, 0.0, 0.0, 1.0},
-        Maths::Vector<double, 4>{0.0, 3.0, 0.0, 1.0},
-        Maths::Vector<double, 4>{1.0, 0.0, 0.0, 1.0}
-    };
 
     //Graphics::Mesh test_mesh {
     //    std::vector<Graphics::Triangle> { test_triangle }
@@ -44,14 +38,14 @@ int main() {
     std::vector<Graphics::Light> lights {
         Graphics::Light {
             Graphics::LightType::AMBIENT,
-            0.3,
+            0.5,
             Maths::Vector<double, 4> { 0.0, 0.0, 0.0, 0.0 }
         },
 
         Graphics::Light {
             Graphics::LightType::DIRECTION,
             0.5,
-            Maths::Vector<double, 4> { 1.0, -1.0, 0.0, 0.0 }
+            Maths::Vector<double, 4> { 1.0, -2.0, -1.0, 0.0 }
         }
     };
 
@@ -144,7 +138,8 @@ int main() {
                 1,   // tex x
                 1    // tex y
             }
-        );*/
+        );
+        */
 
         window->display_render_buffer();
     }

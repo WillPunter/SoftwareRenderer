@@ -116,13 +116,13 @@ class Renderer {
             original shape) because the points added are added in order of their
             traversal around the perimeter according to the same winding. */
         template <typename F, typename G>
-        int clip_vertices(
+        int clip_points(
             Triangle* triangle,
-            Maths::Vector<double, 4> out[4],
+            Point out[4],
             F in_viewing_region,
             G get_intersect
         ) {
-            bool in_vertices[3] = {
+            bool in_points[3] = {
                 in_viewing_region(triangle->points[0]),
                 in_viewing_region(triangle->points[1]),
                 in_viewing_region(triangle->points[2])
@@ -132,14 +132,14 @@ class Renderer {
             int next_i = 0;
 
             for (int i = 0; i < 3; i++) {
-                if (in_vertices[i]) {
+                if (in_points[i]) {
                     out[out_index] = triangle->points[i];
                     out_index ++;
                 }
 
                 next_i = (i + 1) % 3;
 
-                if (in_vertices[i] != in_vertices[next_i]) {
+                if (in_points[i] != in_points[next_i]) {
                     /*  Line vertex[i] -> vertex[next_i] cross viewing region -
                         find intersection and add it as next point. */
                     out[out_index] = get_intersect(
@@ -155,7 +155,7 @@ class Renderer {
 
         int make_triangles(
             int num_vertices,
-            Maths::Vector<double, 4> in_vertices[4],
+            Point in_points[4],
             Triangle out_triangles[2]
         );
 
@@ -171,8 +171,8 @@ class Renderer {
             G get_intersect
         ) {
             std::list<int>::iterator itr = active_indices.begin();
-            Maths::Vector<double, 4> clipped_vertices[4];
-            int num_clipped_vertices = 0;
+            Point clipped_points[4];
+            int num_clipped_points = 0;
             Triangle out_triangles[2];
             int num_triangles = 0;
 
@@ -181,17 +181,17 @@ class Renderer {
 
                 /*  Clip all vertices to obtain nothing, a triangle or a
                     quad. */
-                num_clipped_vertices = clip_vertices(
+                num_clipped_points = clip_points(
                     curr_triangle,
-                    clipped_vertices,
+                    clipped_points,
                     in_viewing_region,
                     get_intersect
                 );
 
                 /*  Partition the given shape into triangles. */
                 num_triangles = make_triangles(
-                    num_clipped_vertices,
-                    clipped_vertices,
+                    num_clipped_points,
+                    clipped_points,
                     out_triangles
                 );
 

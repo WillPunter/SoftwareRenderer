@@ -11,9 +11,30 @@
 
 namespace Graphics {
 
+struct Point {
+    Maths::Vector<double, 4> pos;
+
+    /*  Vertex attributes - for use in camera space: intensity, red, green,
+        blue, texture x, texture y. */
+    double i;
+    double r;
+    double g;
+    double b;
+    double tex_x;
+    double tex_y;
+
+    /*  Vertex attributes divided by z - for use in 2d screen space. */
+    double inv_z;
+    double i_div_z;
+    double r_div_z;
+    double g_div_z;
+    double b_div_z;
+    double tex_x_div_z;
+    double tex_y_div_z;
+};
+
 struct Triangle {
-    Maths::Vector<double, 4> points[3];
-    double intensities[3];
+    Point points[3];
 };
 
 struct Mesh {

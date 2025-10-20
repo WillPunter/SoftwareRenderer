@@ -6,6 +6,8 @@
 
 #include <cmath>
 #include <algorithm>
+#include <iostream>
+#include <string>
 
 namespace Graphics {
 
@@ -160,37 +162,37 @@ void draw_shaded_row(
     int num_steps = abs(p2.x - p1.x);
 
     /*  Inverse depth variation. */
-    double inv_z_diff = p2.depth - p1.depth;
+    double inv_z_diff = p2.inv_z - p1.inv_z;
     double inv_z_step = inv_z_diff / num_steps;
-    double inv_z = p1.depth;
+    double inv_z = p1.inv_z;
 
     /*  Intensity / z variation - varies linearly with 1/z. */
-    double i_div_z_diff = p2.intensity - p1.intensity;
+    double i_div_z_diff = p2.i_div_z - p1.i_div_z;
     double i_div_z_step = i_div_z_diff / num_steps;
-    double i_div_z = p1.intensity;
+    double i_div_z = p1.i_div_z;
 
     /*  Colour variation. */
-    double r_div_z_diff = p2.red - p1.red;
-    double g_div_z_diff = p2.green - p1.green;
-    double b_div_z_diff = p2.blue - p1.blue;
+    double r_div_z_diff = p2.r_div_z - p1.r_div_z;
+    double g_div_z_diff = p2.g_div_z - p1.g_div_z;
+    double b_div_z_diff = p2.b_div_z - p1.b_div_z;
 
     double r_div_z_step = r_div_z_diff / num_steps;
     double g_div_z_step = g_div_z_diff / num_steps;
     double b_div_z_step = b_div_z_diff / num_steps;
 
-    double r_div_z = p1.red;
-    double g_div_z = p1.green;
-    double b_div_z = p1.blue;
+    double r_div_z = p1.r_div_z;
+    double g_div_z = p1.g_div_z;
+    double b_div_z = p1.b_div_z;
 
     /*  Texture coordinates. */
-    double tex_x_div_z_diff = p2.tex_x - p1.tex_x;
-    double tex_y_div_z_diff = p2.tex_y - p1.tex_y;
+    double tex_x_div_z_diff = p2.tex_x_div_z - p1.tex_x_div_z;
+    double tex_y_div_z_diff = p2.tex_y_div_z - p1.tex_y_div_z;
 
     double tex_x_div_z_step = tex_x_div_z_diff / num_steps;
     double tex_y_div_z_step = tex_y_div_z_diff / num_steps;
 
-    double tex_x_div_z = p1.tex_x;
-    double tex_y_div_z = p1.tex_y;
+    double tex_x_div_z = p1.tex_x_div_z;
+    double tex_y_div_z = p1.tex_y_div_z;
 
     double intensity = 0.0;
     double r = 0.0;
@@ -355,34 +357,34 @@ void draw_shaded_triangle(
     x_step_1_3 = x_diff_1_3 / num_steps_1_3;
     x_1_3 = p1.x;
 
-    inv_z_diff_1_3 = (1.0 / p3.depth) - (1.0 / p1.depth);
+    inv_z_diff_1_3 = p3.inv_z - p1.inv_z;
     inv_z_step_1_3 = inv_z_diff_1_3 / num_steps_1_3;
-    inv_z_1_3 = 1.0 / p1.depth;
+    inv_z_1_3 = p1.inv_z;
 
-    i_div_z_diff_1_3 = (p3.intensity / p3.depth) - (p1.intensity / p1.depth);
+    i_div_z_diff_1_3 = p3.i_div_z - p1.i_div_z;
     i_div_z_step_1_3 = i_div_z_diff_1_3 / num_steps_1_3;
-    i_div_z_1_3 = p1.intensity / p1.depth;
+    i_div_z_1_3 = p1.i_div_z;
 
-    r_div_z_diff_1_3 = (p3.red / p3.depth) - (p1.red / p1.depth);
-    g_div_z_diff_1_3 = (p3.green / p3.depth) - (p1.green / p1.depth);
-    b_div_z_diff_1_3 = (p3.blue / p3.depth) - (p1.blue / p1.depth);
+    r_div_z_diff_1_3 = p3.r_div_z - p1.r_div_z;
+    g_div_z_diff_1_3 = p3.g_div_z - p1.g_div_z;
+    b_div_z_diff_1_3 = p3.b_div_z - p1.b_div_z;
 
     r_div_z_step_1_3 = r_div_z_diff_1_3 / num_steps_1_3;
     g_div_z_step_1_3 = g_div_z_diff_1_3 / num_steps_1_3;
     b_div_z_step_1_3 = b_div_z_diff_1_3 / num_steps_1_3;
 
-    r_div_z_1_3 = p1.red / p1.depth;
-    g_div_z_1_3 = p1.green / p1.depth;
-    b_div_z_1_3 = p1.blue / p1.depth;
+    r_div_z_1_3 = p1.r_div_z;
+    g_div_z_1_3 = p1.g_div_z;
+    b_div_z_1_3 = p1.b_div_z;
 
-    tex_x_div_z_diff_1_3 = (p3.tex_x / p3.depth) - (p1.tex_x / p1.depth);
-    tex_y_div_z_diff_1_3 = (p3.tex_y / p3.depth) - (p1.tex_y / p1.depth);
+    tex_x_div_z_diff_1_3 = p3.tex_x_div_z - p1.tex_x_div_z;
+    tex_y_div_z_diff_1_3 = p3.tex_y_div_z - p1.tex_y_div_z;
 
     tex_x_div_z_step_1_3 = tex_x_div_z_diff_1_3 / num_steps_1_3;
     tex_y_div_z_step_1_3 = tex_y_div_z_diff_1_3 / num_steps_1_3;
 
-    tex_x_div_z_1_3 = p1.tex_x / p1.depth;
-    tex_y_div_z_1_3 = p1.tex_y / p1.depth;
+    tex_x_div_z_1_3 = p1.tex_x_div_z;
+    tex_y_div_z_1_3 = p1.tex_y_div_z;
 
     /*  If the lower triangle exists (i.e. it's height is nonzero) then we can
         compute it's coordinates and render it. */
@@ -391,34 +393,34 @@ void draw_shaded_triangle(
         x_step_1_2 = x_diff_1_2 / num_steps_1_2;
         x_1_2 = p1.x;
 
-        inv_z_diff_1_2 = (1.0 / p2.depth) - (1.0 / p1.depth);
+        inv_z_diff_1_2 = p2.inv_z - p1.inv_z;
         inv_z_step_1_2 = inv_z_diff_1_2 / num_steps_1_2;
-        inv_z_1_2 = 1.0 / p1.depth;
+        inv_z_1_2 = p1.inv_z;
 
-        i_div_z_diff_1_2 = (p2.intensity / p2.depth) - (p1.intensity / p1.depth);
+        i_div_z_diff_1_2 = p2.i_div_z - p1.i_div_z;
         i_div_z_step_1_2 = i_div_z_diff_1_2 / num_steps_1_2;
-        i_div_z_1_2 = p1.intensity / p1.depth;
+        i_div_z_1_2 = p1.i_div_z;
 
-        r_div_z_diff_1_2 = (p2.red / p2.depth) - (p1.red / p1.depth);
-        g_div_z_diff_1_2 = (p2.green / p2.depth) - (p1.green / p1.depth);
-        b_div_z_diff_1_2 = (p2.blue / p2.depth) - (p1.blue / p1.depth);
+        r_div_z_diff_1_2 = p2.r_div_z - p1.r_div_z;
+        g_div_z_diff_1_2 = p2.g_div_z - p1.g_div_z;
+        b_div_z_diff_1_2 = p2.b_div_z - p1.b_div_z;
 
         r_div_z_step_1_2 = r_div_z_diff_1_2 / num_steps_1_2;
         g_div_z_step_1_2 = g_div_z_diff_1_2 / num_steps_1_2;
         b_div_z_step_1_2 = b_div_z_diff_1_2 / num_steps_1_2;
 
-        r_div_z_1_2 = p1.red / p1.depth;
-        g_div_z_1_2 = p1.green / p1.depth;
-        b_div_z_1_2 = p1.blue / p1.depth;
+        r_div_z_1_2 = p1.r_div_z;
+        g_div_z_1_2 = p1.g_div_z;
+        b_div_z_1_2 = p1.b_div_z;
 
-        tex_x_div_z_diff_1_2 = (p2.tex_x / p2.depth) - (p1.tex_x / p1.depth);
-        tex_y_div_z_diff_1_2 = (p2.tex_y / p2.depth) - (p1.tex_y / p1.depth);
+        tex_x_div_z_diff_1_2 = p2.tex_x_div_z - p1.tex_x_div_z;
+        tex_y_div_z_diff_1_2 = p2.tex_y_div_z - p1.tex_y_div_z;
 
         tex_x_div_z_step_1_2 = tex_x_div_z_diff_1_2 / num_steps_1_2;
         tex_y_div_z_step_1_2 = tex_y_div_z_diff_1_2 / num_steps_1_2;
 
-        tex_x_div_z_1_2 = p1.tex_x / p1.depth;
-        tex_y_div_z_1_2 = p1.tex_y / p1.depth;
+        tex_x_div_z_1_2 = p1.tex_x_div_z;
+        tex_y_div_z_1_2 = p1.tex_y_div_z;
 
         /*  Draw lower triangle. */
         for (int i = p1.y; i <= p2.y; i++) {
@@ -499,39 +501,37 @@ void draw_shaded_triangle(
         x_2_3 = p2.x;
 
         /*  Inverse depth interpolation. */
-        inv_z_diff_2_3 = (1.0 / p3.depth) - (1.0 / p2.depth);
+        inv_z_diff_2_3 = p3.inv_z - p2.inv_z;
         inv_z_step_2_3 = inv_z_diff_2_3 / num_steps_2_3;
-        inv_z_2_3 = 1.0 / p2.depth;
+        inv_z_2_3 = p2.inv_z;
 
         /*  Intensity / depth interpolation. */
-
-        i_div_z_diff_2_3 = (p3.intensity / p3.depth) - (p2.intensity / p2.depth);
+        i_div_z_diff_2_3 = p3.i_div_z - p2.i_div_z;
         i_div_z_step_2_3 = i_div_z_diff_2_3 / num_steps_2_3;
-        i_div_z_2_3 = p2.intensity / p2.depth;
+        i_div_z_2_3 = p2.i_div_z;
 
         /*  Colour interpolation. */
-
-        r_div_z_diff_2_3 = (p3.red / p3.depth) - (p2.red / p2.depth);
-        g_div_z_diff_2_3 = (p3.green / p3.depth) - (p2.green / p2.depth);
-        b_div_z_diff_2_3 = (p3.blue / p3.depth) - (p2.blue / p2.depth);
+        r_div_z_diff_2_3 = p3.r_div_z - p2.r_div_z;
+        g_div_z_diff_2_3 = p3.g_div_z - p2.g_div_z;
+        b_div_z_diff_2_3 = p3.b_div_z - p2.b_div_z;
 
         r_div_z_step_2_3 = r_div_z_diff_2_3 / num_steps_2_3;
         g_div_z_step_2_3 = g_div_z_diff_2_3 / num_steps_2_3;
         b_div_z_step_2_3 = b_div_z_diff_2_3 / num_steps_2_3;
 
-        r_div_z_2_3 = p2.red / p2.depth;
-        g_div_z_2_3 = p2.green / p2.depth;
-        b_div_z_2_3 = p2.blue / p2.depth;
+        r_div_z_2_3 = p2.r_div_z;
+        g_div_z_2_3 = p2.g_div_z;
+        b_div_z_2_3 = p2.b_div_z;
 
         /*  Texture coordinates. */
-        tex_x_div_z_diff_2_3 = (p3.tex_x / p3.depth) - (p2.tex_x / p2.depth);
-        tex_y_div_z_diff_2_3 = (p3.tex_y / p3.depth) - (p2.tex_y / p2.depth);
+        tex_x_div_z_diff_2_3 = p3.tex_x_div_z - p2.tex_x_div_z;
+        tex_y_div_z_diff_2_3 = p3.tex_y_div_z - p2.tex_y_div_z;
 
         tex_x_div_z_step_2_3 = tex_x_div_z_diff_2_3 / num_steps_2_3;
         tex_y_div_z_step_2_3 = tex_y_div_z_diff_2_3 / num_steps_2_3;
 
-        tex_x_div_z_2_3 = p2.tex_x / p2.depth;
-        tex_y_div_z_2_3 = p2.tex_y / p2.depth;
+        tex_x_div_z_2_3 = p2.tex_x_div_z;
+        tex_y_div_z_2_3 = p2.tex_y_div_z;
 
         /*  Draw upper triangle. */
         for (int i = p2.y; i <= p3.y; i++) {

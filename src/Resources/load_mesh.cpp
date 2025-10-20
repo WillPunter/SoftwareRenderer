@@ -68,9 +68,41 @@ Graphics::Mesh* load_mesh_from_obj(std::string obj_path) {
                         ) {
                             triangles.push_back(Graphics::Triangle {
                                 {
-                                    vertices[v1_adj],
-                                    vertices[v2_adj],
-                                    vertices[v3_adj]
+                                    /*  Position, intensity, red, green,
+                                        blue, texture x, texture_y.
+
+                                        The subsequent attributes are
+                                        set during perspective projection so
+                                        are all set to 0 here. */
+                                    Graphics::Point {
+                                        vertices[v1_adj],
+                                        0.0,
+                                        255.0, 255.0, 255.0,
+                                        0.0, 0.0,
+
+                                        0.0, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0
+                                    },
+
+                                    Graphics::Point {
+                                        vertices[v2_adj],
+                                        0.0,
+                                        255.0, 255.0, 255.0,
+                                        0.0, 0.0,
+
+                                        0.0, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0
+                                    },
+
+                                    Graphics::Point {
+                                        vertices[v3_adj],
+                                        0.0,
+                                        255.0, 255.0, 255.0,
+                                        0.0, 0.0,
+
+                                        0.0, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0
+                                    }
                                 }
                             });
                         }

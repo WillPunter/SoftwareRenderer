@@ -9,8 +9,6 @@
 #include <list>
 #include <iterator>
 
-#include <iostream>
-
 namespace Graphics {
 
 Renderer::Renderer(double fov, double aspect_ratio, double far_plane_distance)
@@ -81,10 +79,11 @@ inline Triangle Renderer::transform_triangle(
     const Triangle& triangle,
     const Maths::Matrix<double, 4, 4>& transform
 ) {
-    Triangle res;
+    /*  Copy all points to preserve vertex attributes. */
+    Triangle res = triangle;
 
     for (int i = 0; i < 3; i++) {
-        res.points[i] = transform * triangle.points[i];
+        res.points[i].pos = transform * triangle.points[i].pos;
     }
 
     return res;
@@ -153,10 +152,10 @@ void Renderer::cull_triangle_back_faces(
         /*  Determine normal via cross product. Since we are in camera space at
             this stage, if the normal points away from the camera, this is a back
             face and cannot be seen. */
-        Maths::Vector<double, 4> side_1 = curr_triangle->points[1] -
-            curr_triangle->points[0];
-        Maths::Vector<double, 4> side_2 = curr_triangle->points[2] -
-            curr_triangle->points[1];
+        Maths::Vector<double, 4> side_1 = curr_triangle->points[1].pos -
+            curr_triangle->points[0].pos;
+        Maths::Vector<double, 4> side_2 = curr_triangle->points[2].pos -
+            curr_triangle->points[1].pos;
 
         Maths::Vector<double, 4> normal = Maths::cross(side_1, side_2);
 
@@ -185,18 +184,16 @@ void Renderer::compute_triangle_lighting(
             /*  Determine type. */
             if (lights[i].type == Graphics::LightType::AMBIENT) {
                 for (int j = 0; j < 3; j++) {
-                    curr_triangle->intensities[j] += lights[i].intensity;
+                    curr_triangle->points[j].i += lights[i].intensity;
                 }
             } else if (lights[i].type == Graphics::LightType::DIRECTION) {
                 /*  Compute normal. */
-                Maths::Vector<double, 4> vec_1 = curr_triangle->points[1] -
-                    curr_triangle->points[0];
-                Maths::Vector<double, 4> vec_2 = curr_triangle->points[2] -
-                    curr_triangle->points[0];
+                Maths::Vector<double, 4> vec_1 = curr_triangle->points[1].pos -
+                    curr_triangle->points[0].pos;
+                Maths::Vector<double, 4> vec_2 = curr_triangle->points[2].pos -
+                    curr_triangle->points[0].pos;
                 Maths::Vector<double, 4> normal =
                     Maths::normalise(Maths::cross(vec_1, vec_2));
-                
-                std::cout << "Normal = " << normal << std::endl;
 
                 /*  Compute dot with light direction. */
                 double angle_intensity = Maths::dot(
@@ -204,26 +201,23 @@ void Renderer::compute_triangle_lighting(
                     Maths::normalise(lights[i].vec)
                 );
 
-                std::cout << "Angle intensity = " << std::to_string(angle_intensity) << std::endl;
-
                 for (int j = 0; j < 3; j++) {
-                    curr_triangle->intensities[j] += angle_intensity *
+                    curr_triangle->points[j].i += angle_intensity *
                         lights[i].intensity;
-                    std::cout << "intensity " << std::to_string(j) << " = " << std::to_string(curr_triangle->intensities[j]) << std::endl;
                 }
             } else if (lights[i].type == Graphics::LightType::POINT) {
                 /*  Compute angle with each vertex. */
                 for (int j = 0; j < 3; j++) {
                     Maths::Vector<double, 4> direction = Maths::normalise(
-                        curr_triangle->points[j] - lights[i].vec
+                        curr_triangle->points[j].pos - lights[i].vec
                     );
 
                     double scale = Maths::dot(
                         direction,
-                        Maths::normalise(curr_triangle->points[j])
+                        Maths::normalise(curr_triangle->points[j].pos)
                     );
 
-                    curr_triangle->intensities[j] += scale *
+                    curr_triangle->points[j].i += scale *
                         lights[i].intensity;
                 }
             }
@@ -231,14 +225,12 @@ void Renderer::compute_triangle_lighting(
 
         /*  Clamp intensities to range (0, 1). */
         for (int i = 0; i < 3; i++) {
-            if (curr_triangle->intensities[i] < 0.0) {
-                curr_triangle->intensities[i] = 0.0;
-            } else if (curr_triangle->intensities[i] > 1.0) {
-                curr_triangle->intensities[i] = 1.0;
+            if (curr_triangle->points[i].i < 0.0) {
+                curr_triangle->points[i].i = 0.0;
+            } else if (curr_triangle->points[i].i > 1.0) {
+                curr_triangle->points[i].i = 1.0;
             }
         }
-
-        std::cout << "Intensities = " << std::to_string(curr_triangle->intensities[0]) << " " << std::to_string(curr_triangle->intensities[1]) << " " << std::to_string(curr_triangle->intensities[2]) << std::endl;
 
         itr ++;
     }
@@ -249,7 +241,7 @@ void Renderer::compute_triangle_lighting(
     polygon. */
 int Renderer::make_triangles(
     int num_vertices,
-    Maths::Vector<double, 4> in_vertices[4],
+    Point in_points[4],
     Triangle out_triangles[2]
 ) {
     int vertex_counter = 0;
@@ -262,9 +254,9 @@ int Renderer::make_triangles(
         simply add v1, this innately preserves the ordering / winding
         of the shape. */
     for (int i = 1; i < num_vertices - 1; i++) {
-        out_triangles[triangle_count].points[0] = in_vertices[0];
-        out_triangles[triangle_count].points[1] = in_vertices[i];
-        out_triangles[triangle_count].points[2] = in_vertices[i + 1];
+        out_triangles[triangle_count].points[0] = in_points[0];
+        out_triangles[triangle_count].points[1] = in_points[i];
+        out_triangles[triangle_count].points[2] = in_points[i + 1];
 
         triangle_count ++;
     }
@@ -287,8 +279,8 @@ void Renderer::clip_near_plane(
 
         /*  Lambda for in_viewing_region operand. In this case the viewing
             region is the forward side of the near plane (z > view_distance). */
-        [this](Maths::Vector<double, 4> vertex) {
-            return vertex(2) >= this->view_plane_distance;
+        [this](Point point) {
+            return point.pos(2) >= this->view_plane_distance;
         },
 
         /*  Lambda for get_intersect operand. This returns a vector storing the
@@ -299,12 +291,29 @@ void Renderer::clip_near_plane(
             all triangles, and validation per triangle would cost clock
             cycles. */
         [this](
-            Maths::Vector<double, 4> vertex_1,
-            Maths::Vector<double, 4> vertex_2
+            Point point_1,
+            Point point_2
         ) {
-            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
-            double scale = (this->view_plane_distance - vertex_1(2)) / diff(2);
-            return vertex_1 + scale * diff;
+            Maths::Vector<double, 4> diff = point_2.pos - point_1.pos;
+            double scale = (this->view_plane_distance - point_1.pos(2)) /
+                diff(2);
+
+            /*  Since we are in 3d camera space, we also interpolate the depth
+                and intensity accordingly. */
+
+            return Point {
+                point_1.pos + scale * diff,
+                point_1.i + scale * (point_2.i -
+                    point_1.i),
+                point_1.r + scale * (point_2.r - point_1.r),
+                point_1.g + scale * (point_2.g - point_1.g),
+                point_1.b + scale * (point_2.b - point_1.b),
+                point_1.tex_x + scale * (point_2.tex_x - point_1.tex_x),
+                point_1.tex_y + scale * (point_2.tex_y - point_1.tex_y),
+                0.0, 0.0,
+                0.0, 0.0, 0.0,
+                0.0, 0.0
+            };
         }
     );
 }
@@ -340,18 +349,70 @@ void Renderer::perspective_project_triangles(
     
     while (itr != active_indices.end()) {
         Triangle* curr_tri = &triangles[*itr];
-        std::cout << "Active Intensities = " << std::to_string(curr_tri->intensities[0]) << " " << std::to_string(curr_tri->intensities[1]) << " " << std::to_string(curr_tri->intensities[2]) << std::endl;
-
+        
         /*  Project all vertices. */
         for (int i = 0; i < 3; i++) {
             double z_near_div_z = this->view_plane_distance /
-                curr_tri->points[i](2);
-            curr_tri->points[i](0) *= z_near_div_z;
-            curr_tri->points[i](1) *= z_near_div_z;
+                curr_tri->points[i].pos(2);
+            curr_tri->points[i].pos(0) *= z_near_div_z;
+            curr_tri->points[i].pos(1) *= z_near_div_z;
+
+            /*  Since we now convert to 2d space, the vertex attributes no
+                longer vary linearly with the new screen space coordinates.
+                Therefore, we have to interpolate against each attribute / z
+                instead, so we store these in the points.
+                
+                Note that since we have already clipped against the near plane,
+                we can assume that the z coordinate is > 0. */
+            curr_tri->points[i].inv_z = 1.0 / curr_tri->points[i].pos(2);
+            curr_tri->points[i].i_div_z = curr_tri->points[i].i /
+                curr_tri->points[i].pos(2);
+            curr_tri->points[i].r_div_z = curr_tri->points[i].r /
+                curr_tri->points[i].pos(2);
+            curr_tri->points[i].g_div_z = curr_tri->points[i].g /
+                curr_tri->points[i].pos(2);
+            curr_tri->points[i].b_div_z = curr_tri->points[i].b /
+                curr_tri->points[i].pos(2);
+            curr_tri->points[i].tex_x_div_z = curr_tri->points[i].tex_x /
+                curr_tri->points[i].pos(2);
+            curr_tri->points[i].tex_y_div_z = curr_tri->points[i].tex_y /
+                curr_tri->points[i].pos(2);
         }
 
         itr++;
     }
+}
+
+/*  Helper function for clipping against the bounds of the 2d viewing plane. */
+static Point make_scaled_point_2d(
+    Point point_1,
+    Point point_2,
+    double scale,
+    Maths::Vector<double, 4> diff
+) {
+    return Point {
+        point_1.pos + scale * diff,
+        
+        /*  Intensity, red, green, blue, tex_x, tex_y - we used the
+            a / z variants below now as we are in 2d perspective
+            projected space so these attributes no longer vary linearly
+            with the coordinates in pos. */
+        0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0,
+        
+        /*  Attributes / z: 1 / z, intensity, red, green, blue, texture
+            x, texture y. */
+        point_1.inv_z + scale * (point_2.inv_z - point_1.inv_z),
+        point_1.i_div_z + scale * (point_2.i_div_z - point_1.i_div_z),
+        point_1.r_div_z + scale * (point_2.r_div_z - point_1.r_div_z),
+        point_1.g_div_z + scale * (point_2.g_div_z - point_1.g_div_z),
+        point_1.b_div_z + scale * (point_2.b_div_z - point_1.b_div_z),
+        point_1.tex_x_div_z + scale * (point_2.tex_x_div_z -
+            point_1.tex_x_div_z),
+        point_1.tex_y_div_z + scale * (point_2.tex_y_div_z -
+            point_1.tex_y_div_z)
+    };
 }
 
 /*  Clip in 2d against the left bound of the screen. */
@@ -363,17 +424,17 @@ void Renderer::clip_left_bound(
         triangles,
         active_indices,
 
-        [this](Maths::Vector<double, 4>& vertex) {
-            return vertex(0) > this->screen_left_bound;
+        [this](Point& point) {
+            return point.pos(0) > this->screen_left_bound;
         },
 
         [this](
-            Maths::Vector<double, 4>& vertex_1,
-            Maths::Vector<double, 4>& vertex_2
+            Point& point_1,
+            Point& point_2
         ) {
-            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
-            double scale = (this->screen_left_bound - vertex_1(0)) / diff(0);
-            return vertex_1 + scale * diff;
+            Maths::Vector<double, 4> diff = point_2.pos - point_1.pos;
+            double scale = (this->screen_left_bound - point_1.pos(0)) / diff(0);
+            return make_scaled_point_2d(point_1, point_2, scale, diff);
         }
     );
 }
@@ -387,17 +448,18 @@ void Renderer::clip_right_bound(
         triangles,
         active_indices,
 
-        [this](Maths::Vector<double, 4>& vertex) {
-            return vertex(0) < this->screen_right_bound;
+        [this](Point& point) {
+            return point.pos(0) < this->screen_right_bound;
         },
 
         [this](
-            Maths::Vector<double, 4>& vertex_1,
-            Maths::Vector<double, 4>& vertex_2
+            Point& point_1,
+            Point& point_2
         ) {
-            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
-            double scale = (this->screen_right_bound - vertex_1(0)) / diff(0);
-            return vertex_1 + scale * diff;
+            Maths::Vector<double, 4> diff = point_2.pos - point_1.pos;
+            double scale = (this->screen_right_bound - point_1.pos(0)) /
+                diff(0);
+            return make_scaled_point_2d(point_1, point_2, scale, diff);
         }
     );
 }
@@ -411,17 +473,17 @@ void Renderer::clip_top_bound(
         triangles,
         active_indices,
 
-        [this](Maths::Vector<double, 4>& vertex) {
-            return vertex(1) < this->screen_top_bound;
+        [this](Point& point) {
+            return point.pos(1) < this->screen_top_bound;
         },
 
         [this](
-            Maths::Vector<double, 4>& vertex_1,
-            Maths::Vector<double, 4>& vertex_2
+            Point& point_1,
+            Point& point_2
         ) {
-            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
-            double scale = (this->screen_top_bound - vertex_1(1)) / diff(1);
-            return vertex_1 + scale * diff;
+            Maths::Vector<double, 4> diff = point_2.pos - point_1.pos;
+            double scale = (this->screen_top_bound - point_1.pos(1)) / diff(1);
+            return make_scaled_point_2d(point_1, point_2, scale, diff);
         }
     );
 }
@@ -435,17 +497,18 @@ void Renderer::clip_bottom_bound(
         triangles,
         active_indices,
 
-        [this](Maths::Vector<double, 4>& vertex) {
-            return vertex(1) > this->screen_bottom_bound;
+        [this](Point& point) {
+            return point.pos(1) > this->screen_bottom_bound;
         },
 
         [this](
-            Maths::Vector<double, 4>& vertex_1,
-            Maths::Vector<double, 4>& vertex_2
+            Point& point_1,
+            Point& point_2
         ) {
-            Maths::Vector<double, 4> diff = vertex_2 - vertex_1;
-            double scale = (this->screen_bottom_bound - vertex_1(1)) / diff(1);
-            return vertex_1 + scale * diff;
+            Maths::Vector<double, 4> diff = point_2.pos - point_1.pos;
+            double scale = (this->screen_bottom_bound - point_1.pos(1)) /
+                diff(1);
+            return make_scaled_point_2d(point_1, point_2, scale, diff);
         }
     );
 }
@@ -474,14 +537,14 @@ void Renderer::convert_triangles_to_pixel_space(
         Triangle* curr_triangle = &triangles[*itr];
 
         for (int i = 0; i < 3; i++) {
-            curr_triangle->points[i](0) = round(
-                ((curr_triangle->points[i](0) - this->screen_left_bound) /
+            curr_triangle->points[i].pos(0) = round(
+                ((curr_triangle->points[i].pos(0) - this->screen_left_bound) /
                 (this->screen_right_bound - this->screen_left_bound)) *
                 (buffer_width - 1)
             );
             
-            curr_triangle->points[i](1) = (buffer_height - 1) - round(
-                ((curr_triangle->points[i](1) - this->screen_bottom_bound) /
+            curr_triangle->points[i].pos(1) = (buffer_height - 1) - round(
+                ((curr_triangle->points[i].pos(1) - this->screen_bottom_bound) /
                 (this->screen_top_bound - this->screen_bottom_bound)) *
                 (buffer_height - 1)
             );
@@ -503,71 +566,46 @@ void Renderer::rasterise_triangles(
     while (itr != active_indices.end()) {
         Triangle* curr_triangle = &triangles[*itr];
 
-        std::cout << "Intensities = " << std::to_string(curr_triangle->intensities[0]) << " " << std::to_string(curr_triangle->intensities[1]) << " " << std::to_string(curr_triangle->intensities[2]) << std::endl;
-
         draw_shaded_triangle(
             render_window,
 
             {
-                static_cast<int>(floor(curr_triangle->points[0](0))),
-                static_cast<int>(floor(curr_triangle->points[0](1))),
-                curr_triangle->points[0](2),
-                curr_triangle->intensities[0],
-                255,
-                0,
-                0,
-                0,
-                0
+                static_cast<int>(floor(curr_triangle->points[0].pos(0))),
+                static_cast<int>(floor(curr_triangle->points[0].pos(1))),
+                curr_triangle->points[0].inv_z,
+                curr_triangle->points[0].i_div_z,
+                curr_triangle->points[0].r_div_z,
+                curr_triangle->points[0].g_div_z,
+                curr_triangle->points[0].b_div_z,
+                curr_triangle->points[0].tex_x_div_z,
+                curr_triangle->points[0].tex_y_div_z
             },
 
             {
-                static_cast<int>(floor(curr_triangle->points[1](0))),
-                static_cast<int>(floor(curr_triangle->points[1](1))),
-                curr_triangle->points[1](2),
-                curr_triangle->intensities[1],
-                0,
-                255,
-                0,
-                0,
-                0
+                static_cast<int>(floor(curr_triangle->points[1].pos(0))),
+                static_cast<int>(floor(curr_triangle->points[1].pos(1))),
+                curr_triangle->points[1].inv_z,
+                curr_triangle->points[1].i_div_z,
+                curr_triangle->points[1].r_div_z,
+                curr_triangle->points[1].g_div_z,
+                curr_triangle->points[1].b_div_z,
+                curr_triangle->points[1].tex_x_div_z,
+                curr_triangle->points[1].tex_y_div_z
             },
 
             {
-                static_cast<int>(floor(curr_triangle->points[2](0))),
-                static_cast<int>(floor(curr_triangle->points[2](1))),
-                curr_triangle->points[2](2),
-                curr_triangle->intensities[2],
-                0,
-                0,
-                255,
-                0,
-                0
+                static_cast<int>(floor(curr_triangle->points[2].pos(0))),
+                static_cast<int>(floor(curr_triangle->points[2].pos(1))),
+                curr_triangle->points[2].inv_z,
+                curr_triangle->points[2].i_div_z,
+                curr_triangle->points[2].r_div_z,
+                curr_triangle->points[2].g_div_z,
+                curr_triangle->points[2].b_div_z,
+                curr_triangle->points[2].tex_x_div_z,
+                curr_triangle->points[2].tex_y_div_z
             }
         );
-
-        /*
-        draw_wireframe_triangle(
-            render_window,
-
-            {
-                (int) floor(curr_triangle->points[0](0)),
-                (int) floor(curr_triangle->points[0](1))
-            },
-
-            {
-                (int) floor(curr_triangle->points[1](0)),
-                (int) floor(curr_triangle->points[1](1))
-            },
-
-            {
-                (int) floor(curr_triangle->points[2](0)),
-                (int) floor(curr_triangle->points[2](1))
-            },
-
-            255, 0, 0
-        );
-        */
-
+        
         itr ++;
     }
 }

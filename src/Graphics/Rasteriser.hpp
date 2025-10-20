@@ -17,13 +17,13 @@ namespace Graphics {
 struct pixel_coord {
     int x;
     int y;
-    double depth = 1.0; /*  Note that we may substitute in 1/z here too. */
-    double intensity = 1.0;
-    double red = 0;
-    double green = 0;
-    double blue = 0;
-    double tex_x; /*   Texture coordinates. */
-    double tex_y;
+    double inv_z = 1.0; /*  Note that we may substitute in 1/z here too. */
+    double i_div_z = 1.0;
+    double r_div_z = 0;
+    double g_div_z = 0;
+    double b_div_z = 0;
+    double tex_x_div_z; /*  Texture coordinates. */
+    double tex_y_div_z;
 };
 
 /*  Simple wrapper around window.draw_pixel member function. */
