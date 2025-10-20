@@ -23,6 +23,8 @@ void Renderer::render_scene(
     System::RenderWindow& render_window,
     const Scene& scene
 ) {
+    render_window.reset_depth_buffer();
+
     std::vector<Triangle> triangles;
     std::list<int> active_indices;
 

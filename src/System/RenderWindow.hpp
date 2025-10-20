@@ -72,6 +72,12 @@ class RenderWindow {
         virtual void draw_pixel(int width, int height, uint8_t red,
             uint8_t green, uint8_t blue) = 0;
         
+        virtual void reset_depth_buffer() = 0;
+        
+        virtual double read_depth_buffer(int x, int y) = 0;
+
+        virtual void write_depth_buffer(int x, int y, double val) = 0;
+        
         virtual int get_width() = 0;
 
         virtual int get_height() = 0;

@@ -213,16 +213,21 @@ void draw_shaded_row(
         /*  Mix colours. */
 
         /*  Check depth buffer and pixel coordinates. */
+        double depth_buff_val = window.read_depth_buffer(i, y);
 
-        /*  Draw pixel. */
-        draw_pixel(
-            window,
-            i,
-            y,
-            static_cast<uint8_t>(clamp(r * intensity, 0, 255)),
-            static_cast<uint8_t>(clamp(g * intensity, 0, 255)),
-            static_cast<uint8_t>(clamp(b * intensity, 0, 255))
-        );
+        if (depth_buff_val == 0.0 || depth_buff_val < inv_z) {
+            /*  Draw pixel. */
+            draw_pixel(
+                window,
+                i,
+                y,
+                static_cast<uint8_t>(clamp(r * intensity, 0, 255)),
+                static_cast<uint8_t>(clamp(g * intensity, 0, 255)),
+                static_cast<uint8_t>(clamp(b * intensity, 0, 255))
+            );
+
+            window.write_depth_buffer(i, y, inv_z);
+        }
 
         /*  Increment interpolation steps. */
         inv_z += inv_z_step;
