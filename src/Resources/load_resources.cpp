@@ -90,10 +90,21 @@ TrueColourBitmap* load_bitmap_from_file(std::string bitmap_path) {
             return nullptr;
         }
 
-        uint32_t pixel_index = 0;
+        int pixel_index = 0;
+        int line_index = 0;
 
         /*  Copy pixel data from loaded buffer to output buffer. */
         for (int i = 0; i < pos_height; i++) {
+            /*  Compute start of new line - this depends on the orientation
+                of the bitmap. */
+            if (info_header.height < 0) {
+                line_index = i * row_bytes;
+            } else {
+                line_index = (pos_height - 1 - i) * row_bytes;
+            }
+
+            pixel_index = line_index;
+
             for (int j = 0; j < info_header.width; j++) {
                 if (info_header.bits_per_pixel == 32) {
                     pixels[num_pixels] = {
@@ -114,9 +125,6 @@ TrueColourBitmap* load_bitmap_from_file(std::string bitmap_path) {
                 pixel_index += bytes_per_pixel;
                 num_pixels ++;
             }
-
-            /*  Skip padding. */
-            pixel_index += padding;
         }
 
         /*  Reading is complete and successful. */
