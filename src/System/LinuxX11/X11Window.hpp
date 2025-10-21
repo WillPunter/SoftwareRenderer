@@ -5,8 +5,21 @@
 
 #include <X11/Xlib.h>
 #include <string>
+#include "./../RenderWindow.hpp"
+
+constexpr int KEY_COUNT = 256;
 
 namespace System {
+
+/*  X11 representation of arrow keys. Unfortunately this cannot be an enum
+    class since it must be compared with X11 integer values returned by it's C
+    API functions. */
+enum X11_ARROW_KEYS {
+    X11_ARROW_LEFT = 65361,
+    X11_ARROW_UP,
+    X11_ARROW_RIGHT,
+    X11_ARROW_DOWN
+};
 
 /*  Forward declare implementing classes so that they can be made friends. */
 class X11RGBARenderWindow;
@@ -34,6 +47,8 @@ class X11Window {
 
         void close_window();
 
+        KeyState get_key(KeySymbol key_id);
+
         friend X11RGBARenderWindow;
 
     private:
@@ -52,6 +67,13 @@ class X11Window {
         Visual* visual_info;
 
         Atom window_manager_delete_window_id;
+
+        /*  Separate ascii and non-ascii keys due to representation differences
+            in X11 - ascii keys (characters, numbers, punctuation) have their
+            expected numerical values, but control keys - enter, arrows, etc.
+            have unique numerical encodings. */
+        KeyState ascii_keys[KEY_COUNT];
+        KeyState arrow_keys[4];
 };
 
 }

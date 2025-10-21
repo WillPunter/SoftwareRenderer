@@ -25,6 +25,18 @@ class X11RGBARenderWindow : public RenderWindow {
 
         void draw_pixel(int x, int y, uint8_t red, uint8_t green,
             uint8_t blue) override;
+        
+        void reset_depth_buffer() override;
+        
+        double read_depth_buffer(int x, int y) override;
+
+        void write_depth_buffer(int x, int y, double val) override;
+        
+        int get_width() override;
+
+        int get_height() override;
+
+        KeyState get_key(KeySymbol key_id) override;
 
         /*  Only allow public construction through non-member factory method
             make_render_window. */
@@ -40,6 +52,8 @@ class X11RGBARenderWindow : public RenderWindow {
 
         using pixel = uint32_t;
         std::vector<pixel> rgba_buffer;
+
+        std::vector<double> depth_buffer;
 
         static constexpr int TRUE_COLOR_BIT_DEPTH = 24;
 

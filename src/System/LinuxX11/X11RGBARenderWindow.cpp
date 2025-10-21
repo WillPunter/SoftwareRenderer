@@ -2,11 +2,13 @@
 
 #include "X11RGBARenderWindow.hpp"
 #include <cstring>
+#include <iostream>
 
 namespace System {
 
 X11RGBARenderWindow::X11RGBARenderWindow(std::string title, int width,
-    int height) : window{title, width, height}, rgba_buffer(width * height) {
+    int height) : window{title, width, height}, rgba_buffer(width * height),
+    depth_buffer(width * height) {
     /*  Create graphics context for window - use default mask and metadata
         values (two zero parameters). */
     this->graphics_context = XCreateGC(this->window.server_connection,
@@ -69,6 +71,32 @@ inline void X11RGBARenderWindow::draw_pixel(int x, int y, uint8_t red,
         (green << this->green_shift) | (blue << this->blue_shift);
 
     this->rgba_buffer[y * this->window.width + x] = pixel_val;
+}
+
+void X11RGBARenderWindow::reset_depth_buffer() {
+    for (int i = 0; i < this->window.width * this->window.height; i++) {
+        this->depth_buffer[i] = 0.0;
+    }
+};
+        
+inline double X11RGBARenderWindow::read_depth_buffer(int x, int y) {
+    return this->depth_buffer[y * this->window.width + x];
+};
+
+inline void X11RGBARenderWindow::write_depth_buffer(int x, int y, double val) {
+    this->depth_buffer[y * this->window.width + x] = val;
+};
+
+int X11RGBARenderWindow::get_width() {
+    return this->window.width;
+}
+
+int X11RGBARenderWindow::get_height() {
+    return this->window.height;
+}
+
+KeyState X11RGBARenderWindow::get_key(KeySymbol key_id) {
+    return window.get_key(key_id);
 }
 
 /*  Prerequisite - rgb mask is of form 0b0...1...1...0, i.e. a string of 1s

@@ -1,0 +1,157 @@
+/*  models/main.cpp
+
+    The creation of a simple triangle model that is made to rotate. */
+
+#include "./../../src/System/RenderWindow.hpp"
+#include "./../../src/Graphics/Rasteriser.hpp"
+#include "./../../src/Graphics/Model.hpp"
+#include "./../../src/Graphics/Renderer.hpp"
+#include "./../../src/Resources/load_resources.hpp"
+
+#include <iostream>
+#include <string>
+
+int main() {
+    /*  Create window. */
+    std::unique_ptr<System::RenderWindow> window(
+        System::make_render_window("Models", 640, 480));
+
+    //Graphics::Mesh test_mesh {
+    //    std::vector<Graphics::Triangle> { test_triangle }
+    //};
+
+    Graphics::Mesh* test_mesh =
+        Resources::load_mesh_from_obj("./../res/cube2.obj");
+
+    if (test_mesh == nullptr) {
+        std::cerr << "Failed to load mesh." << std::endl;
+        return -1;
+    }
+
+    Graphics::Model test_model {
+        test_mesh,
+        Maths::Vector<double, 4> { 0.0, 0.0, 7.0, 1.0 },
+        Maths::Vector<double, 4> { 1.0, 1.0, 1.0, 0.0 },
+        Maths::Vector<double, 4> { 0.0, 0.0, 0.0, 0.0 }
+    };
+
+    std::vector<Graphics::Light> lights {
+        Graphics::Light {
+            Graphics::LightType::AMBIENT,
+            0.5,
+            Maths::Vector<double, 4> { 0.0, 0.0, 0.0, 0.0 }
+        },
+
+        Graphics::Light {
+            Graphics::LightType::DIRECTION,
+            0.5,
+            Maths::Vector<double, 4> { 1.0, -2.0, -1.0, 0.0 }
+        }
+    };
+
+    Graphics::Renderer renderer(45.0, 640.0 / 480.0, 1000.0);
+
+    Graphics::Camera camera;
+
+    int x = 320;
+    int y = 240;
+
+    while (window->is_open()) {
+        window->handle_events();
+
+        window->clear_window();
+
+        test_model.rotation(1) += 0.01;
+        test_model.rotation(2) += 0.005;
+
+        //if (window->get_key(32) == System::KeyState::KEY_DOWN) {
+        //    camera.rotation(2) += 0.1;
+        //}
+
+        if (window->get_key(
+            System::KeySymbol::ARROW_LEFT) == System::KeyState::KEY_DOWN
+        ) {
+            camera.rotation(1) += 0.01;
+            x -= 1;
+        }
+
+        if (window->get_key(
+            System::KeySymbol::ARROW_RIGHT) == System::KeyState::KEY_DOWN
+        ) {
+            camera.rotation(1) -= 0.01;
+            x += 1;
+        }
+
+        if (window->get_key(
+            System::KeySymbol::ARROW_UP) == System::KeyState::KEY_DOWN
+        ) {
+            camera.rotation(0) += 0.01;
+            y += 1;
+        }
+
+        if (window->get_key(
+            System::KeySymbol::ARROW_DOWN) == System::KeyState::KEY_DOWN
+        ) {
+            camera.rotation(0) -= 0.01;
+            y -= 1;
+        }
+
+        /*  Construct scene. */
+        Graphics::Scene scene {
+            std::vector<Graphics::Model*> { &test_model },
+            lights,
+            camera
+        };
+
+        /*  Render scene. */
+        renderer.render_scene(*window, scene);
+
+        /*  Draw triangle */
+        /*
+        Graphics::draw_shaded_triangle(
+            *window,
+            Graphics::pixel_coord  {
+                32,  // x
+                300,  // y
+                1.0, // depth
+                1.0, // intensity
+                255, // r
+                0,   // g
+                0,   // b
+                1,   // tex x
+                1    // tex y
+            },
+
+            Graphics::pixel_coord  {
+                x, // x
+                y,  // y
+                1.0, // depth
+                1.0, // intensity
+                0, // r
+                255,   // g
+                0,   // b
+                1,   // tex x
+                1    // tex y
+            },
+
+            Graphics::pixel_coord  {
+                384, // x
+                227, // y
+                1.0, // depth
+                1.0, // intensity
+                0,   // r
+                0,   // g
+                255, // b
+                1,   // tex x
+                1    // tex y
+            },
+            nullptr,
+            640,
+            480
+        );*/
+
+        window->display_render_buffer();
+    }
+
+    delete test_mesh;
+}

@@ -1,6 +1,7 @@
 /*  X11Window.cpp */
 
 #include "X11Window.hpp"
+#include <X11/XKBlib.h>
 #include <stdexcept>
 #include <iostream>
 
@@ -30,7 +31,8 @@ X11Window::X11Window(std::string title, int width, int height) :
     );
 
     /*  Select events with event mask. */
-    unsigned long event_mask = ExposureMask | ButtonPressMask;
+    unsigned long event_mask = ExposureMask | ButtonPressMask | KeyPressMask
+        | KeyReleaseMask;
     XSelectInput(this->server_connection, this->window, event_mask);
 
     /*  Set window title. */
@@ -95,6 +97,34 @@ void X11Window::close_window() {
     this->should_close = true;
 }
 
+KeyState X11Window::get_key(KeySymbol key_id) {
+    int symbol = (int) key_id;
+
+    switch (key_id) {
+        case KeySymbol::ARROW_LEFT: {
+            return this->arrow_keys[0];
+        }
+
+        case KeySymbol::ARROW_UP: {
+            return this->arrow_keys[1];
+        }
+
+        case KeySymbol::ARROW_RIGHT: {
+            return this->arrow_keys[2];
+        }
+
+        case KeySymbol::ARROW_DOWN: {
+            return this->arrow_keys[3];
+        }
+    }
+
+    if (symbol >= 0 && symbol < KEY_COUNT) {
+        return this->ascii_keys[symbol];
+    }
+
+    return KeyState::KEY_UNDEFINED;
+}
+
 bool X11Window::multiplex_event(XEvent& event) {
     bool frame_should_continue = true;
 
@@ -125,6 +155,84 @@ bool X11Window::multiplex_event(XEvent& event) {
                 this->should_close = true;
                 frame_should_continue = false;
             }
+
+            break;
+        }
+
+        case KeyPress: {
+            KeySym key_symbol = XkbKeycodeToKeysym(
+                this->server_connection,
+                event.xkey.keycode,
+                0,
+                0
+            );
+
+            /*  Handle ASCII keys - numerical mappings are preserved in X11. */
+            if (key_symbol < KEY_COUNT) {
+                this->ascii_keys[key_symbol] = KeyState::KEY_DOWN;
+            }
+
+            /*  Handle supported non-ASCII keys. */
+            switch (key_symbol) {
+                case X11_ARROW_LEFT: {
+                    this->arrow_keys[0] = KeyState::KEY_DOWN;
+                    break;
+                }
+                
+                case X11_ARROW_UP: {
+                    this->arrow_keys[1] = KeyState::KEY_DOWN;
+                    break;
+                }
+
+                case X11_ARROW_RIGHT: {
+                    this->arrow_keys[2] = KeyState::KEY_DOWN;
+                    break;
+                }
+
+                case X11_ARROW_DOWN: {
+                    this->arrow_keys[3] = KeyState::KEY_DOWN;
+                    break;
+                }
+            };
+
+            break;
+        }
+
+        case KeyRelease: {
+            KeySym key_symbol = XkbKeycodeToKeysym(
+                this->server_connection,
+                event.xkey.keycode,
+                0,
+                0
+            );
+
+            /*  Handle ASCII keys - numerical mappings are preserved in X11. */
+            if (key_symbol < KEY_COUNT) {
+                this->ascii_keys[key_symbol] = KeyState::KEY_UP;
+            }
+
+            /*  Handle supported non-ASCII keys. */
+            switch (key_symbol) {
+                case X11_ARROW_LEFT: {
+                    this->arrow_keys[0] = KeyState::KEY_UP;
+                    break;
+                }
+                
+                case X11_ARROW_UP: {
+                    this->arrow_keys[1] = KeyState::KEY_UP;
+                    break;
+                }
+
+                case X11_ARROW_RIGHT: {
+                    this->arrow_keys[2] = KeyState::KEY_UP;
+                    break;
+                }
+
+                case X11_ARROW_DOWN: {
+                    this->arrow_keys[3] = KeyState::KEY_UP;
+                    break;
+                }
+            };
 
             break;
         }

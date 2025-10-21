@@ -8,6 +8,9 @@
 
 #include <array>
 #include <stdexcept>
+#include <ostream>
+
+#include "Vector.hpp"
 
 namespace Maths {
 
@@ -232,7 +235,7 @@ Vector<T, M> operator*(const Matrix<T, M, N>& mat, const Vector<T, N>& vec) {
 template<typename T, unsigned M, unsigned K, unsigned N>
 Matrix<T, M, N> operator*(
     const Matrix<T, M, K>& lhs,
-    const Matrix<T, K, M>& rhs
+    const Matrix<T, K, N>& rhs
 ) {
     Matrix<T, M, N> res;
 
@@ -243,6 +246,8 @@ Matrix<T, M, N> operator*(
             for (int k = 0; k < K; k++) {
                 sum += lhs(i, k) * rhs(k, j);
             }
+
+            res(i, j) = sum;
         }
     }
 

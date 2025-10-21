@@ -1,0 +1,66 @@
+/*  Transform.hpp
+
+    A collection of functions for implementing geometric transformations for 3d
+    graphics. */
+
+#ifndef TRANSFORM_HPP
+#define TRANSFORM_HPP
+
+#include "Matrix.hpp"
+#include "Vector.hpp"
+
+#include <cmath>
+
+namespace Maths {
+
+/*  Normal vector normalised under Euclidean (L2) norm. */
+template<unsigned int N>
+Vector<double, N> normalise(Vector<double, N> vec) {
+    double sum_sq = 0;
+
+    for (int i = 0; i < N; i++) {
+        sum_sq += vec(i) * vec(i);
+    }
+
+    return (1.0 / std::sqrt(sum_sq)) * vec;
+}
+
+/*  Construct NxN identity matrix. */
+template<unsigned int N>
+Matrix<double, N, N> make_identity() {
+    Matrix<double, N, N> res;
+
+    for (int i = 0; i < N; i++) {
+        res(i, i) = 1;
+        res(i, N - 1) = 1;
+    }
+
+    return res;
+}
+
+/*  3d Enlargement matrix using homogeneous coordinates. */
+Matrix<double, 4, 4> make_enlargement(double x, double y, double z);
+
+/*  Rotation matrices using homogeneous coordinates. */
+Matrix<double, 4, 4> make_rotation_yz_plane(double x);
+Matrix<double, 4, 4> make_rotation_xz_plane(double y);
+Matrix<double, 4, 4> make_rotation_xy_plane(double z);
+
+/*  Object rotation - rotate in yz, then xy, and finally xz. */
+Matrix<double, 4, 4> make_rotation_model(double x, double y, double z);
+
+/*  World rotation - rotate in xy, then xz then yz. */
+Matrix<double, 4, 4> make_rotation_world(double x, double y, double z);
+
+/*  Make inverse rotation world. */
+Matrix<double, 4, 4> make_inverse_rotation_world(double x, double y, double z);
+
+/*  Translation matrix. */
+Matrix<double, 4, 4> make_translation(double x, double y, double z);
+
+/*  Homogeneous projection. */
+Matrix<double, 4, 4> make_homogeneous_projection(double plane_distance);
+
+}
+
+#endif
