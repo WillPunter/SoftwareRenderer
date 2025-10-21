@@ -39,6 +39,7 @@ struct Triangle {
 
 struct Mesh {
     std::vector<Triangle> triangles;
+    bool use_texture;
 };
 
 struct Model {

@@ -1,6 +1,7 @@
-/*  models/main.cpp
+/*  Worlds demo.
 
-    The creation of a simple triangle model that is made to rotate. */
+    This demo allows you to explore a variety of maps using a
+    first-person-view camera. */
 
 #include "./../../src/System/RenderWindow.hpp"
 #include "./../../src/Graphics/Rasteriser.hpp"
@@ -12,16 +13,26 @@
 #include <string>
 
 int main() {
-    /*  Create window. */
-    std::unique_ptr<System::RenderWindow> window(
-        System::make_render_window("Models", 640, 480));
+    /*  Load bitmap. */
+    Resources::TrueColourBitmap* bmp = Resources::load_bitmap_from_file("./../res/artisans_hub_texture.bmp");
 
-    //Graphics::Mesh test_mesh {
-    //    std::vector<Graphics::Triangle> { test_triangle }
-    //};
+    if (bmp) {
+        std::cout << "Loaded bitmap with width "
+            << std::to_string(bmp->width) << " and height "
+            << std::to_string(bmp->height) << "." << std::endl;
+    } else {
+        return -1;
+    }
+
+    int bmp_x = 32;
+    int bmp_y = 48;
+
+    /*  pixels[num_pixels]Create window. */
+    std::unique_ptr<System::RenderWindow> window(
+        System::make_render_window("Worlds", 640, 480));
 
     Graphics::Mesh* test_mesh =
-        Resources::load_mesh_from_obj("./../res/cow.obj");
+        Resources::load_mesh_from_obj("./../res/Artisans Hub.obj");
 
     if (test_mesh == nullptr) {
         std::cerr << "Failed to load mesh." << std::endl;
@@ -95,6 +106,21 @@ int main() {
             lights,
             camera
         };
+
+        /*  Draw bitmap. */
+        for (int i = 0; i < bmp->height; i++) {
+            for (int j = 0; j < bmp->width; j++) {
+                int pixel_index = i * bmp->width + j;
+                Graphics::draw_pixel(
+                    *window,
+                    bmp_x + j,
+                    bmp_y + i,
+                    bmp->pixels[pixel_index].r,
+                    bmp->pixels[pixel_index].g,
+                    bmp->pixels[pixel_index].b
+                );
+            }
+        }
 
         /*  Render scene. */
         renderer.render_scene(*window, scene);

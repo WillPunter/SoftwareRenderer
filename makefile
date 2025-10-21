@@ -44,10 +44,10 @@ $(BUILD_PATH)/Renderer.o: $(GRAPHICS_PATH)/Renderer.cpp $(GRAPHICS_PATH)/Rendere
 Graphics: $(BUILD_PATH)/Rasteriser.o $(BUILD_PATH)/Model.o $(BUILD_PATH)/Renderer.o
 
 # Resources module.
-$(BUILD_PATH)/load_mesh.o: $(RESOURCES_PATH)/load_mesh.cpp $(RESOURCES_PATH)/load_mesh.hpp
-	$(CC) $(CFLAGS) $(RESOURCES_PATH)/load_mesh.cpp -o $(BUILD_PATH)/load_mesh.o
+$(BUILD_PATH)/load_resources.o: $(RESOURCES_PATH)/load_resources.cpp $(RESOURCES_PATH)/load_resources.hpp
+	$(CC) $(CFLAGS) $(RESOURCES_PATH)/load_resources.cpp -o $(BUILD_PATH)/load_resources.o
 
-Resources: $(BUILD_PATH)/load_mesh.o
+Resources: $(BUILD_PATH)/load_resources.o
 
 # All - compile all modules (do not link into library though).
 all: Systems_Linux Maths Graphics Resources
@@ -62,8 +62,12 @@ lines: all
 	cd build && ./lines
 
 models: all
-	$(CC) $(BUILD_PATH)/X11Window.o $(BUILD_PATH)/X11RGBARenderWindow.o $(BUILD_PATH)/LinuxX11.o $(BUILD_PATH)/Transform.o $(BUILD_PATH)/Rasteriser.o $(BUILD_PATH)/Model.o $(BUILD_PATH)/Renderer.o $(BUILD_PATH)/load_mesh.o $(EXAMPLES_PATH)/models/main.cpp $(LFLAGS) -o $(BUILD_PATH)/models
+	$(CC) $(BUILD_PATH)/X11Window.o $(BUILD_PATH)/X11RGBARenderWindow.o $(BUILD_PATH)/LinuxX11.o $(BUILD_PATH)/Transform.o $(BUILD_PATH)/Rasteriser.o $(BUILD_PATH)/Model.o $(BUILD_PATH)/Renderer.o $(BUILD_PATH)/load_resources.o $(EXAMPLES_PATH)/models/main.cpp $(LFLAGS) -o $(BUILD_PATH)/models
 	cd build && ./models
+
+worlds: all
+	$(CC) $(BUILD_PATH)/X11Window.o $(BUILD_PATH)/X11RGBARenderWindow.o $(BUILD_PATH)/LinuxX11.o $(BUILD_PATH)/Transform.o $(BUILD_PATH)/Rasteriser.o $(BUILD_PATH)/Model.o $(BUILD_PATH)/Renderer.o $(BUILD_PATH)/load_resources.o $(EXAMPLES_PATH)/worlds/main.cpp $(LFLAGS) -o $(BUILD_PATH)/worlds
+	cd build && ./worlds
 
 # Clean
 clean:
