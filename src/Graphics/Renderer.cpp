@@ -3,6 +3,7 @@
     Implements 3d rendering functionality. */
 
 #include "Renderer.hpp"
+#include "./../Maths/Matrix.hpp"
 #include "./../Maths/Transform.hpp"
 #include "Rasteriser.hpp"
 #include <cmath>
@@ -50,11 +51,15 @@ void Renderer::render_scene(
         scene.camera
     );
 
+    /*  Transform lights into camera space. */
+    std::vector<Light> lights = scene.lights;
+    this->convert_lights_to_camera_space(lights, scene.camera);
+
     /*  Cull back faces. */
     this->cull_triangle_back_faces(triangles, active_indices);
 
     /*  Compute lighting at each vertex (Gouraud Shading). */
-    this->compute_triangle_lighting(triangles, active_indices, scene.lights);
+    this->compute_triangle_lighting(triangles, active_indices, lights);
 
     /*  Clip against near plane in 3d. */
     this->clip_near_plane(triangles, active_indices);
@@ -108,6 +113,20 @@ void Renderer::build_triangles_list_from_models(
     }
 }
 
+static inline Maths::Matrix<double, 4, 4> get_camera_transform(
+    const Camera& camera
+) {
+    return Maths::make_rotation_world(
+        -camera.rotation(0),
+        -camera.rotation(1),
+        -camera.rotation(2)
+    ) * Maths::make_translation(
+        -camera.position(0),
+        -camera.position(1),
+        -camera.position(2)
+    );
+}
+
 void Renderer::convert_triangles_to_camera_space(
     std::vector<Triangle>& triangles,
     std::list<int>& active_indices,
@@ -117,15 +136,7 @@ void Renderer::convert_triangles_to_camera_space(
         by the reverse of the camera position to move the "camera" to the
         centre of the scene. Then we rotate, also by the reverse of the
         camera, and in the order y-axis, then x-axis, then z-axis. */
-    Maths::Matrix<double, 4, 4> camera_transform = Maths::make_rotation_world(
-        -camera.rotation(0),
-        -camera.rotation(1),
-        -camera.rotation(2)
-    ) * Maths::make_translation(
-        -camera.position(0),
-        -camera.position(1),
-        -camera.position(2)
-    );
+    Maths::Matrix<double, 4, 4> camera_transform = get_camera_transform(camera);
 
     std::list<int>::iterator itr = active_indices.begin();
 
@@ -138,6 +149,17 @@ void Renderer::convert_triangles_to_camera_space(
         );
 
         itr ++;
+    }
+}
+
+void Renderer::convert_lights_to_camera_space(
+    std::vector<Light>& lights,
+    const Camera& camera
+) {
+    Maths::Matrix<double, 4, 4> transform = get_camera_transform(camera);
+    
+    for (Light& l : lights) {
+        l.vec = transform * l.vec;
     }
 }
 

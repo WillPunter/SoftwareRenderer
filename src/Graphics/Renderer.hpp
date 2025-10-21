@@ -71,6 +71,11 @@ class Renderer {
             const Camera& camera
         );
 
+        void convert_lights_to_camera_space(
+            std::vector<Light>& lights,
+            const Camera& camera
+        );
+
         void cull_triangle_back_faces(
             std::vector<Triangle>& triangles,
             std::list<int>& active_indices
