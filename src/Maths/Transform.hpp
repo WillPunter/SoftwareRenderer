@@ -52,6 +52,9 @@ Matrix<double, 4, 4> make_rotation_model(double x, double y, double z);
 /*  World rotation - rotate in xy, then xz then yz. */
 Matrix<double, 4, 4> make_rotation_world(double x, double y, double z);
 
+/*  Make inverse rotation world. */
+Matrix<double, 4, 4> make_inverse_rotation_world(double x, double y, double z);
+
 /*  Translation matrix. */
 Matrix<double, 4, 4> make_translation(double x, double y, double z);
 

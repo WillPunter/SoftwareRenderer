@@ -16,8 +16,8 @@
 namespace Graphics {
 
 struct pixel_coord {
-    int x;
-    int y;
+    double x;
+    double y;
     double inv_z = 1.0; /*  Note that we may substitute in 1/z here too. */
     double i_div_z = 1.0;
     double r_div_z = 0;

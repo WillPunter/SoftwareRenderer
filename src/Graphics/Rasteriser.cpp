@@ -204,7 +204,10 @@ void draw_shaded_row(
     double tex_x = 0.0;
     double tex_y = 0.0;
 
-    for (int i = p1.x; i <= p2.x; i++) {
+    int p1_x = (int) floor(p1.x);
+    int p2_x = (int) floor(p2.x);
+
+    for (int i = p1_x; i <= p2_x; i++) {
         /*  Compute intensity by taking (I/z) / (1/z). */
         intensity = i_div_z / inv_z;
         r = r_div_z / inv_z;
@@ -226,8 +229,8 @@ void draw_shaded_row(
             /*  Check if textures are used. */
             if (bitmap_ptr != nullptr) {
                 /*  Mix texture colours and rgb values. */
-                int pixel_x = floor(tex_x * (bitmap_ptr->width - 1));
-                int pixel_y = floor(tex_y * (bitmap_ptr->height - 1));
+                int pixel_x = round(tex_x * (bitmap_ptr->width - 1));
+                int pixel_y = round(tex_y * (bitmap_ptr->height - 1));
 
                 if (pixel_x < 0) {
                     pixel_x = 0;
@@ -470,8 +473,8 @@ void draw_shaded_triangle(
         for (int i = p1.y; i <= p2.y; i++) {
             /*  Draw row. */
             pixel_coord p_1_2 = {
-                (int) x_1_2,
-                i,
+                x_1_2,
+                (double) i,
                 inv_z_1_2,
                 i_div_z_1_2,
                 r_div_z_1_2,
@@ -482,8 +485,8 @@ void draw_shaded_triangle(
             };
 
             pixel_coord p_1_3 = {
-                (int) x_1_3,
-                i,
+                x_1_3,
+                (double) i,
                 inv_z_1_3,
                 i_div_z_1_3,
                 r_div_z_1_3,
@@ -587,8 +590,8 @@ void draw_shaded_triangle(
         for (int i = p2.y; i <= p3.y; i++) {
             /*  Draw row. */
             pixel_coord p_2_3 = {
-                (int) x_2_3,
-                i,
+                x_2_3,
+                (double) i,
                 inv_z_2_3,
                 i_div_z_2_3,
                 r_div_z_2_3,
@@ -599,8 +602,8 @@ void draw_shaded_triangle(
             };
 
             pixel_coord p_1_3 = {
-                (int) x_1_3,
-                i,
+                x_1_3,
+                (double) i,
                 inv_z_1_3,
                 i_div_z_1_3,
                 r_div_z_1_3,
@@ -611,6 +614,8 @@ void draw_shaded_triangle(
             };
 
             if (x_2_3 <= x_1_3) {
+                p_1_3.x += 1;
+
                 draw_shaded_row(
                     window,
                     i,

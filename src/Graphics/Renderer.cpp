@@ -576,8 +576,8 @@ void Renderer::rasterise_triangles(
             render_window,
 
             {
-                static_cast<int>(floor(curr_triangle->points[0].pos(0))),
-                static_cast<int>(floor(curr_triangle->points[0].pos(1))),
+                curr_triangle->points[0].pos(0),
+                curr_triangle->points[0].pos(1),
                 curr_triangle->points[0].inv_z,
                 curr_triangle->points[0].i_div_z,
                 curr_triangle->points[0].r_div_z,
@@ -588,8 +588,8 @@ void Renderer::rasterise_triangles(
             },
 
             {
-                static_cast<int>(floor(curr_triangle->points[1].pos(0))),
-                static_cast<int>(floor(curr_triangle->points[1].pos(1))),
+                curr_triangle->points[1].pos(0),
+                curr_triangle->points[1].pos(1),
                 curr_triangle->points[1].inv_z,
                 curr_triangle->points[1].i_div_z,
                 curr_triangle->points[1].r_div_z,
@@ -600,8 +600,8 @@ void Renderer::rasterise_triangles(
             },
 
             {
-                static_cast<int>(floor(curr_triangle->points[2].pos(0))),
-                static_cast<int>(floor(curr_triangle->points[2].pos(1))),
+                curr_triangle->points[2].pos(0),
+                curr_triangle->points[2].pos(1),
                 curr_triangle->points[2].inv_z,
                 curr_triangle->points[2].i_div_z,
                 curr_triangle->points[2].r_div_z,

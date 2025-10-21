@@ -11,6 +11,10 @@
 
 #include <iostream>
 #include <string>
+#include <chrono>
+
+double rotation_speed = 4.0;
+double move_speed = 10.0;
 
 int main() {
     /*  Load bitmap. */
@@ -39,11 +43,6 @@ int main() {
     
     Resources::attach_texture(*test_mesh, *bmp);
 
-    std::cout << "???" << std::endl;
-
-    // std::cout << std::to_string(test_mesh->triangles[0].bitmap_ptr->width) << std::endl;
-    // std::cout << std::to_string(test_mesh->triangles[0].bitmap_ptr->height) << std::endl;
-
     if (test_mesh == nullptr) {
         std::cerr << "Failed to load mesh." << std::endl;
         return -1;
@@ -51,7 +50,7 @@ int main() {
 
     Graphics::Model test_model {
         test_mesh,
-        Maths::Vector<double, 4> { 0.0, -100.0, 0.0, 1.0 },
+        Maths::Vector<double, 4> { 0.0, -20.0, 0.0, 1.0 },
         Maths::Vector<double, 4> { 1.0, 1.0, 1.0, 0.0 },
         Maths::Vector<double, 4> { 0.0, 0.0, 0.0, 0.0 }
     };
@@ -74,6 +73,10 @@ int main() {
 
     Graphics::Camera camera;
 
+    auto start = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
+    double delta_time = 0.0;
+
     while (window->is_open()) {
         window->handle_events();
 
@@ -86,25 +89,25 @@ int main() {
         if (window->get_key(
             System::KeySymbol::ARROW_LEFT) == System::KeyState::KEY_DOWN
         ) {
-            camera.rotation(1) += 0.01;
+            camera.rotation(1) += rotation_speed * delta_time;
         }
 
         if (window->get_key(
             System::KeySymbol::ARROW_RIGHT) == System::KeyState::KEY_DOWN
         ) {
-            camera.rotation(1) -= 0.01;
+            camera.rotation(1) -= rotation_speed * delta_time;
         }
 
         if (window->get_key(
             System::KeySymbol::ARROW_UP) == System::KeyState::KEY_DOWN
         ) {
-            camera.rotation(0) += 0.01;
+            camera.rotation(0) -= rotation_speed * delta_time;
         }
 
         if (window->get_key(
             System::KeySymbol::ARROW_DOWN) == System::KeyState::KEY_DOWN
         ) {
-            camera.rotation(0) -= 0.01;
+            camera.rotation(0) += rotation_speed * delta_time;
         }
 
         if (window->get_key(
@@ -115,18 +118,16 @@ int main() {
                 0.0, 0.0, 1.0, 0.0
             };
 
-            auto mat = Maths::make_rotation_world(
-                camera.rotation(0),
-                camera.rotation(1),
-                camera.rotation(2)
+            auto mat = Maths::make_inverse_rotation_world(
+                -camera.rotation(0),
+                -camera.rotation(1),
+                -camera.rotation(2)
             );
 
             Maths::Vector<double, 4> delta = mat * dir;
 
-            camera.position = camera.position + (4 * delta);
+            camera.position = camera.position + (move_speed * delta_time * delta);
         }
-
-
 
         /*  Construct scene. */
         Graphics::Scene scene {
@@ -148,69 +149,16 @@ int main() {
             }
         };
 
-        /*  Draw bitmap. */
-        /*
-        for (int i = 0; i < bmp->height; i++) {
-            for (int j = 0; j < bmp->width; j++) {
-                int pixel_index = i * bmp->width + j;
-                Graphics::draw_pixel(
-                    *window,
-                    bmp_x + j,
-                    bmp_y + i,
-                    bmp->pixels[pixel_index].r,
-                    bmp->pixels[pixel_index].g,
-                    bmp->pixels[pixel_index].b
-                );
-            }
-        }
-        */
-
         /*  Render scene. */
         renderer.render_scene(*window, scene);
 
-        /*  Draw triangle */
-        /*
-        Graphics::draw_shaded_triangle(
-            *window,
-            Graphics::pixel_coord  {
-                600,  // x
-                300,  // y
-                1.0, // depth
-                1.0, // intensity
-                255, // r
-                0,   // g
-                0,   // b
-                1,   // tex x
-                1    // tex y
-            },
-
-            Graphics::pixel_coord  {
-                200, // x
-                144,  // y
-                1.0, // depth
-                1.0, // intensity
-                0, // r
-                255,   // g
-                0,   // b
-                1,   // tex x
-                1    // tex y
-            },
-
-            Graphics::pixel_coord  {
-                100, // x
-                32, // y
-                1.0, // depth
-                1.0, // intensity
-                0,   // r
-                0,   // g
-                255, // b
-                1,   // tex x
-                1    // tex y
-            }
-        );
-        */
-
         window->display_render_buffer();
+
+        /*  Compute end time. */
+        end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> time_diff = end - start;
+        delta_time = time_diff.count();
+        start = end;
     }
 
     delete test_mesh;

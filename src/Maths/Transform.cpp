@@ -64,6 +64,11 @@ Matrix<double, 4, 4> make_rotation_world(double x, double y, double z) {
         make_rotation_xz_plane(y);
 }
 
+Matrix<double, 4, 4> make_inverse_rotation_world(double x, double y, double z) {
+    return make_rotation_xz_plane(-y) * make_rotation_yz_plane(-x) *
+        make_rotation_xy_plane(-z);
+}
+
 Matrix<double, 4, 4> make_translation(double x, double y, double z) {
     return Matrix<double, 4, 4> {
         1, 0, 0, x,
