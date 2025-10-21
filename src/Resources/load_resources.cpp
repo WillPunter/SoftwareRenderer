@@ -142,10 +142,123 @@ TrueColourBitmap* load_bitmap_from_file(std::string bitmap_path) {
     return result;
 };
 
+/*  Each point on a face in an obj file can consist of up to three indices:
+        The position index (required).
+        The texture coordinate index (optional).
+        The normal coordinate index (optional).
+    These are written in the form:
+        p/t/n
+    But for conciseness the following are permuted:
+        p/t/n
+        p/t
+        p//n
+    These cases need to be handled.
+    
+    Note that all of these are integer indices to vertices that should already
+    have been read in. */
+enum class ObjTripletFormat {
+    P,
+    PT,
+    PN,
+    PTN,
+    ERROR
+};
+
+static ObjTripletFormat parse_face_point_triplet(
+    std::stringstream& line,
+    int out[3]
+) {
+    /*  Try to read postion index. */
+    line >> out[0];
+
+    if (!line) {
+        return ObjTripletFormat::ERROR;
+    }
+
+    /*  Consume whitespace. */
+    line >> std::ws;
+
+    /*  If there are no more characters, the triple is of form P. */
+    char c;
+    if (!line.get(c)) {
+        return ObjTripletFormat::P;
+    }
+
+    /*  Check if a / was read. If not, then put the character read back into
+        the stream. */
+    if (c != '/') {
+        line.unget();
+        return ObjTripletFormat::P;
+    }
+
+    /*  Consume whitespace before next significant character. */
+    line >> std::ws;
+
+    char next = line.peek();
+
+    /*  We expect something to follow a / so return an error if there are no
+        more characters. */
+    if (next == EOF) {
+        return ObjTripletFormat::ERROR;
+    }
+
+    /*  A PN form is encoded as P//N, so we check for a second slash and parse
+        as PN if so. */
+    if (next == '/') {
+        line.get();
+        line >> std::ws;
+        line >> out[2];
+
+        if (!line) {
+            return ObjTripletFormat::ERROR;
+        }
+
+        return ObjTripletFormat::PN;
+    }
+
+    /*  If we did not read a second slash, then it is of PT or PTN form, so
+        read T. */
+    line >> out[1];
+
+    if (!line) {
+        return ObjTripletFormat::ERROR;
+    }
+
+    line >> std::ws;
+
+    /*  Check if there is another slash, denoting PTN. */
+    if (!line.get(c)) {
+        return ObjTripletFormat::PT;
+    }
+
+    /*  If the next character is not a slash, then we have finished parsing a
+        PT triple successfully. */
+    if (c != '/') {
+        line.unget();
+        return ObjTripletFormat::PT;
+    }
+
+    /*  If we read another slash, then we expect another integer for N. */
+    line >> std::ws;
+    line >> out[2];
+
+    if (!line) {
+        return ObjTripletFormat::ERROR;
+    }
+
+    return ObjTripletFormat::PTN;
+}
+
 /*  Load mesh - returns a unique pointer to a mesh. This will be nullptr if the
     file could not be opened. If the file could be parsed. Note that lines that
     cannot be parsed in the .obj file will simply be skipped (so as to allow
     the geometry of files with currently unsupported features to be loaded). */
+struct FaceTriple {
+    int position_index;
+    int texture_coord_index;
+    int normal_index;
+};
+
 Graphics::Mesh* load_mesh_from_obj(std::string obj_path) {
     Graphics::Mesh* mesh = nullptr;
 
@@ -156,6 +269,8 @@ Graphics::Mesh* load_mesh_from_obj(std::string obj_path) {
         bool failed = false;
 
         std::vector<Maths::Vector<double, 4>> vertices;
+        std::vector<Maths::Vector<double, 4>> texture_coords;
+        std::vector<Maths::Vector<double, 4>> normals;
         std::vector<Graphics::Triangle> triangles;
 
         std::string line;
@@ -179,67 +294,139 @@ Graphics::Mesh* load_mesh_from_obj(std::string obj_path) {
                         vertices.push_back(
                             Maths::Vector<double, 4> { x, y, z, 1.0 }
                         );
+                    } else {
+                        failed = true;
+                        break;
+                    };
+                } else if (mnemonic == "vt") {
+                    /*  Vertex texture coords - attempt to read two doubles -
+                        if not, dicard line. */
+                    double x;
+                    double y;
+                    double z;
+
+                    if (line_stream >> x >> y) {
+                        /*  Add texture coord to texture coords array. */
+                        texture_coords.push_back(
+                            Maths::Vector<double, 4> { x, y, 1.0, 1.0 }
+                        );
+                    } else {
+                        failed = true;
+                        break;
+                    };
+                } else if (mnemonic == "vn") {
+                    /*  Vertex normal - attempt to read three doubles - if not,
+                        dicard line. */
+                    double x;
+                    double y;
+                    double z;
+
+                    if (line_stream >> x >> y >> z) {
+                        /*  Add normal to normals array. */
+                        normals.push_back(
+                            Maths::Vector<double, 4> { x, y, z, 1.0 }
+                        );
+                    } else {
+                        failed = true;
+                        break;
                     };
                 } else if (mnemonic == "f") {
-                    int v1;
-                    int v2;
-                    int v3;
+                    /*  Read first P/T/N triple. */
+                    int v1[3];
+                    ObjTripletFormat v1_form =
+                        parse_face_point_triplet(line_stream, v1);
 
-                    if (line_stream >> v1 >> v2 >> v3) {
-                        /*  OBJ files encode vertex numbers starting at 1 - we
-                            must subtract 1 to get them as indices to a
-                            zero-indexed vector. */
-                        int v1_adj = v1 - 1;
-                        int v2_adj = v2 - 1;
-                        int v3_adj = v3 - 1;
-
-                        /*  Add triangle to triangles vector. */
-                        if (
-                            v1_adj >= 0 && v1_adj < vertices.size() &&
-                            v2_adj >= 0 && v2_adj < vertices.size() &&
-                            v3_adj >= 0 && v3_adj < vertices.size()
-                        ) {
-                            triangles.push_back(Graphics::Triangle {
-                                {
-                                    /*  Position, intensity, red, green,
-                                        blue, texture x, texture_y.
-
-                                        The subsequent attributes are
-                                        set during perspective projection so
-                                        are all set to 0 here. */
-                                    Graphics::Point {
-                                        vertices[v1_adj],
-                                        0.0,
-                                        255.0, 255.0, 255.0,
-                                        0.0, 0.0,
-
-                                        0.0, 0.0, 0.0, 0.0,
-                                        0.0, 0.0, 0.0
-                                    },
-
-                                    Graphics::Point {
-                                        vertices[v2_adj],
-                                        0.0,
-                                        255.0, 255.0, 255.0,
-                                        0.0, 0.0,
-
-                                        0.0, 0.0, 0.0, 0.0,
-                                        0.0, 0.0, 0.0
-                                    },
-
-                                    Graphics::Point {
-                                        vertices[v3_adj],
-                                        0.0,
-                                        255.0, 255.0, 255.0,
-                                        0.0, 0.0,
-
-                                        0.0, 0.0, 0.0, 0.0,
-                                        0.0, 0.0, 0.0
-                                    }
-                                }
-                            });
-                        }
+                    if (v1_form == ObjTripletFormat::ERROR) {
+                        failed = true;
+                        break;
                     }
+
+                    /*  Read second P/T/N triple. */
+                    int v2[3];
+                    ObjTripletFormat v2_form =
+                        parse_face_point_triplet(line_stream, v2);
+
+                    if (v2_form == ObjTripletFormat::ERROR) {
+                        failed = true;
+                        break;
+                    }
+
+                    /*  Read third P/T/N triple. */
+                    int v3[3];
+                    ObjTripletFormat v3_form =
+                        parse_face_point_triplet(line_stream, v3);
+
+                    if (v3_form == ObjTripletFormat::ERROR) {
+                        failed = true;
+                        break;
+                    }
+
+                    /*  Verify that all vertices have the same form. */
+                    if (v1_form != v2_form || v2_form != v3_form) {
+                        failed = true;
+                        break;
+                    }
+
+                    /*  Fill out point structures - we do not use normals for
+                        now as we compute them in the rendering pipeline. */
+                    Graphics::Point point_1 {};
+
+                    point_1.pos = vertices[v1[0] - 1];
+                    point_1.r = 255.0;
+                    point_1.g = 255.0;
+                    point_1.b = 255.0;
+
+                    if (
+                        v1_form == ObjTripletFormat::PT ||
+                        v1_form == ObjTripletFormat::PTN
+                    ) {
+                        Maths::Vector<double, 4> tex_vertex =
+                            texture_coords[v1[1] - 1];
+                        point_1.tex_x = tex_vertex(0);
+                        point_1.tex_y = tex_vertex(1);
+                    }
+
+                    Graphics::Point point_2 {};
+
+                    point_2.pos = vertices[v2[0] - 1];
+                    point_2.r = 255.0;
+                    point_2.g = 255.0;
+                    point_2.b = 255.0;
+
+                    if (
+                        v2_form == ObjTripletFormat::PT ||
+                        v2_form == ObjTripletFormat::PTN
+                    ) {
+                        Maths::Vector<double, 4> tex_vertex =
+                            texture_coords[v2[1] - 1];
+                        point_2.tex_x = tex_vertex(0);
+                        point_2.tex_y = tex_vertex(1);
+                    }
+
+                    Graphics::Point point_3 {};
+
+                    point_3.pos = vertices[v3[0] - 1];
+                    point_3.r = 255.0;
+                    point_3.g = 255.0;
+                    point_3.b = 255.0;
+
+                    if (
+                        v3_form == ObjTripletFormat::PT ||
+                        v3_form == ObjTripletFormat::PTN
+                    ) {
+                        Maths::Vector<double, 4> tex_vertex =
+                            texture_coords[v3[1] - 1];
+                        point_3.tex_x = tex_vertex(0);
+                        point_3.tex_y = tex_vertex(1);
+                    }
+
+                    std::cout << "Tex coords: (" << std::to_string(point_1.tex_x) << ", " << std::to_string(point_1.tex_y) << "), (" << std::to_string(point_2.tex_x) << ", " << std::to_string(point_2.tex_y) << "), (" << std::to_string(point_3.tex_x) << ", " << std::to_string(point_3.tex_y) << ")" << std::endl;
+
+                    /*  Add triangle to triangles vector. */
+                    triangles.push_back(Graphics::Triangle {
+                        { point_1, point_2, point_3 },
+                        nullptr
+                    });
                 }
             }
         };
@@ -254,5 +441,13 @@ Graphics::Mesh* load_mesh_from_obj(std::string obj_path) {
 
     return mesh;
 }
+
+/*  Attach a texture to a mesh that already has texture coordinates. */
+void attach_texture(Graphics::Mesh& mesh, TrueColourBitmap& bitmap) {
+    /*  Set the bitmap pointer of all triangles to this bitmap. */
+    for (Graphics::Triangle& tri : mesh.triangles) {
+        tri.bitmap_ptr = &bitmap;
+    }
+};
 
 }

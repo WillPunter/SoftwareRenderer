@@ -111,6 +111,9 @@ TrueColourBitmap* load_bitmap_from_file(std::string bitmap_path);
     we may want to accept nullptr as a return value. */
 Graphics::Mesh* load_mesh_from_obj(std::string obj_path);
 
+/*  Attach a texture to a mesh. */
+void attach_texture(Graphics::Mesh& mesh, TrueColourBitmap& bitmap);
+
 }
 
 #endif

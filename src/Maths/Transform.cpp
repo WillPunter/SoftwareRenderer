@@ -24,8 +24,8 @@ Matrix<double, 4, 4> make_rotation_yz_plane(double x) {
 
     return Matrix<double, 4, 4> {
         1, 0,      0,     0,
-        0, cos_x,  sin_x, 0,
-        0, -sin_x, cos_x, 0,
+        0, cos_x,  -sin_x, 0,
+        0, sin_x, cos_x, 0,
         0, 0,      0,     1
     };
 }

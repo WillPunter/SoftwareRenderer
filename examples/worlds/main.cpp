@@ -24,6 +24,9 @@ int main() {
         return -1;
     }
 
+    std::cout << std::to_string(bmp->width) << std::endl;
+    std::cout << std::to_string(bmp->height) << std::endl;
+
     int bmp_x = 32;
     int bmp_y = 48;
 
@@ -32,7 +35,14 @@ int main() {
         System::make_render_window("Worlds", 640, 480));
 
     Graphics::Mesh* test_mesh =
-        Resources::load_mesh_from_obj("./../res/Artisans Hub.obj");
+        Resources::load_mesh_from_obj("./../res/test.obj");
+    
+    Resources::attach_texture(*test_mesh, *bmp);
+
+    std::cout << "???" << std::endl;
+
+    // std::cout << std::to_string(test_mesh->triangles[0].bitmap_ptr->width) << std::endl;
+    // std::cout << std::to_string(test_mesh->triangles[0].bitmap_ptr->height) << std::endl;
 
     if (test_mesh == nullptr) {
         std::cerr << "Failed to load mesh." << std::endl;
@@ -41,7 +51,7 @@ int main() {
 
     Graphics::Model test_model {
         test_mesh,
-        Maths::Vector<double, 4> { 0.0, 0.0, 7.0, 1.0 },
+        Maths::Vector<double, 4> { 0.0, -100.0, 0.0, 1.0 },
         Maths::Vector<double, 4> { 1.0, 1.0, 1.0, 0.0 },
         Maths::Vector<double, 4> { 0.0, 0.0, 0.0, 0.0 }
     };
@@ -68,9 +78,6 @@ int main() {
         window->handle_events();
 
         window->clear_window();
-
-        test_model.rotation(1) += 0.01;
-        test_model.rotation(2) += 0.005;
 
         //if (window->get_key(32) == System::KeyState::KEY_DOWN) {
         //    camera.rotation(2) += 0.1;
@@ -100,6 +107,27 @@ int main() {
             camera.rotation(0) -= 0.01;
         }
 
+        if (window->get_key(
+            System::KeySymbol::SPACE) == System::KeyState::KEY_DOWN
+        ) {
+            /*  Compute camera vector. */
+            Maths::Vector<double, 4> dir = {
+                0.0, 0.0, 1.0, 0.0
+            };
+
+            auto mat = Maths::make_rotation_world(
+                camera.rotation(0),
+                camera.rotation(1),
+                camera.rotation(2)
+            );
+
+            Maths::Vector<double, 4> delta = mat * dir;
+
+            camera.position = camera.position + (4 * delta);
+        }
+
+
+
         /*  Construct scene. */
         Graphics::Scene scene {
             std::vector<Graphics::Model*> { &test_model },
@@ -107,7 +135,21 @@ int main() {
             camera
         };
 
+        for (int i = 0; i < window->get_width(); i++) {
+            for (int j = 0; j < window->get_height(); j++) {
+                Graphics::draw_pixel(
+                    *window,
+                    i,
+                    j,
+                    0,
+                    120,
+                    255
+                );
+            }
+        };
+
         /*  Draw bitmap. */
+        /*
         for (int i = 0; i < bmp->height; i++) {
             for (int j = 0; j < bmp->width; j++) {
                 int pixel_index = i * bmp->width + j;
@@ -121,6 +163,7 @@ int main() {
                 );
             }
         }
+        */
 
         /*  Render scene. */
         renderer.render_scene(*window, scene);

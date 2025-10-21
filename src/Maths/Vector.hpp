@@ -273,7 +273,8 @@ Vector<T, 4> cross(const Vector<T, 4>& lhs, const Vector<T, 4>& rhs) {
     return {
         lhs(1) * rhs(2) - lhs(2) * rhs(1),
         lhs(2) * rhs(0) - lhs(0) * rhs(2),
-        lhs(0) * rhs(1) - lhs(1) * rhs(0)
+        lhs(0) * rhs(1) - lhs(1) * rhs(0),
+        0.0
     };
 }
 

@@ -21,7 +21,7 @@ int main() {
     //};
 
     Graphics::Mesh* test_mesh =
-        Resources::load_mesh_from_obj("./../res/cow.obj");
+        Resources::load_mesh_from_obj("./../res/cube2.obj");
 
     if (test_mesh == nullptr) {
         std::cerr << "Failed to load mesh." << std::endl;
@@ -53,6 +53,9 @@ int main() {
 
     Graphics::Camera camera;
 
+    int x = 320;
+    int y = 240;
+
     while (window->is_open()) {
         window->handle_events();
 
@@ -69,24 +72,28 @@ int main() {
             System::KeySymbol::ARROW_LEFT) == System::KeyState::KEY_DOWN
         ) {
             camera.rotation(1) += 0.01;
+            x -= 1;
         }
 
         if (window->get_key(
             System::KeySymbol::ARROW_RIGHT) == System::KeyState::KEY_DOWN
         ) {
             camera.rotation(1) -= 0.01;
+            x += 1;
         }
 
         if (window->get_key(
             System::KeySymbol::ARROW_UP) == System::KeyState::KEY_DOWN
         ) {
             camera.rotation(0) += 0.01;
+            y += 1;
         }
 
         if (window->get_key(
             System::KeySymbol::ARROW_DOWN) == System::KeyState::KEY_DOWN
         ) {
             camera.rotation(0) -= 0.01;
+            y -= 1;
         }
 
         /*  Construct scene. */
@@ -104,7 +111,7 @@ int main() {
         Graphics::draw_shaded_triangle(
             *window,
             Graphics::pixel_coord  {
-                600,  // x
+                32,  // x
                 300,  // y
                 1.0, // depth
                 1.0, // intensity
@@ -116,8 +123,8 @@ int main() {
             },
 
             Graphics::pixel_coord  {
-                200, // x
-                144,  // y
+                x, // x
+                y,  // y
                 1.0, // depth
                 1.0, // intensity
                 0, // r
@@ -128,8 +135,8 @@ int main() {
             },
 
             Graphics::pixel_coord  {
-                100, // x
-                32, // y
+                384, // x
+                227, // y
                 1.0, // depth
                 1.0, // intensity
                 0,   // r
@@ -137,9 +144,11 @@ int main() {
                 255, // b
                 1,   // tex x
                 1    // tex y
-            }
-        );
-        */
+            },
+            nullptr,
+            640,
+            480
+        );*/
 
         window->display_render_buffer();
     }

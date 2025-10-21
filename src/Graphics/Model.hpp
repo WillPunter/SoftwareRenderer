@@ -9,6 +9,11 @@
 #include "./../Maths/Vector.hpp"
 #include <vector>
 
+/*  load_resources.hpp includes this, so we forward declare the bitmap structure. */
+namespace Resources {
+    struct TrueColourBitmap;
+}
+
 namespace Graphics {
 
 struct Point {
@@ -35,11 +40,11 @@ struct Point {
 
 struct Triangle {
     Point points[3];
+    Resources::TrueColourBitmap* bitmap_ptr = nullptr;
 };
 
 struct Mesh {
     std::vector<Triangle> triangles;
-    bool use_texture;
 };
 
 struct Model {

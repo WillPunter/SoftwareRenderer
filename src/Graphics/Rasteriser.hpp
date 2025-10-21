@@ -11,6 +11,7 @@
 #define RASTERISER_HPP
 
 #include "./../System/RenderWindow.hpp"
+#include "./../Resources/load_resources.hpp"
 
 namespace Graphics {
 
@@ -41,14 +42,20 @@ void draw_shaded_row(
     System::RenderWindow& window,
     int y,
     pixel_coord p1,
-    pixel_coord p2
+    pixel_coord p2,
+    Resources::TrueColourBitmap* bitmap_ptr,
+    int buffer_width,
+    int buffer_height
 );
 
 void draw_shaded_triangle(
     System::RenderWindow& window,
     pixel_coord p1,
     pixel_coord p2,
-    pixel_coord p3
+    pixel_coord p3,
+    Resources::TrueColourBitmap* bitmap_ptr,
+    int buffer_width,
+    int buffer_height
 );
 
 }

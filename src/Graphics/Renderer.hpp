@@ -13,9 +13,11 @@
 #include "./../System/RenderWindow.hpp"
 #include "Model.hpp"
 #include "./../Maths/Transform.hpp"
+#include "./../Resources/load_resources.hpp"
 
 #include <list>
 #include <vector>
+#include <iostream>
 
 namespace Graphics {
 
@@ -156,7 +158,8 @@ class Renderer {
         int make_triangles(
             int num_vertices,
             Point in_points[4],
-            Triangle out_triangles[2]
+            Triangle out_triangles[2],
+            Resources::TrueColourBitmap* bitmap_ptr
         );
 
         /*  Clip triangles - another template function, this time that clips
@@ -192,7 +195,8 @@ class Renderer {
                 num_triangles = make_triangles(
                     num_clipped_points,
                     clipped_points,
-                    out_triangles
+                    out_triangles,
+                    curr_triangle->bitmap_ptr
                 );
 
                 /*  Add corresponding triangles to passed structures. */

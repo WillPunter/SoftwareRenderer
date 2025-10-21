@@ -8,6 +8,7 @@
 #include <cmath>
 #include <list>
 #include <iterator>
+#include <iostream>
 
 namespace Graphics {
 
@@ -102,7 +103,7 @@ void Renderer::build_triangles_list_from_models(
         
         for (const Triangle& t : m->mesh->triangles) {
             triangles.push_back(transform_triangle(t, model_transform_matrix));
-            active_indices.push_back(triangles.size());
+            active_indices.push_back(triangles.size() - 1);
         }
     }
 }
@@ -157,11 +158,13 @@ void Renderer::cull_triangle_back_faces(
         Maths::Vector<double, 4> side_1 = curr_triangle->points[1].pos -
             curr_triangle->points[0].pos;
         Maths::Vector<double, 4> side_2 = curr_triangle->points[2].pos -
-            curr_triangle->points[1].pos;
+            curr_triangle->points[0].pos;
 
         Maths::Vector<double, 4> normal = Maths::cross(side_1, side_2);
 
-        if (Maths::dot(normal, view_dir) > 0) {
+        double dot = Maths::dot(normal, curr_triangle->points[0].pos);
+
+        if (dot > 0) {
             itr = active_indices.erase(itr);
         } else {
             itr ++;
@@ -244,7 +247,8 @@ void Renderer::compute_triangle_lighting(
 int Renderer::make_triangles(
     int num_vertices,
     Point in_points[4],
-    Triangle out_triangles[2]
+    Triangle out_triangles[2],
+    Resources::TrueColourBitmap* bitmap_ptr
 ) {
     int vertex_counter = 0;
     int triangle_count = 0;
@@ -259,7 +263,7 @@ int Renderer::make_triangles(
         out_triangles[triangle_count].points[0] = in_points[0];
         out_triangles[triangle_count].points[1] = in_points[i];
         out_triangles[triangle_count].points[2] = in_points[i + 1];
-
+        out_triangles[triangle_count].bitmap_ptr = bitmap_ptr;
         triangle_count ++;
     }
 
@@ -605,7 +609,11 @@ void Renderer::rasterise_triangles(
                 curr_triangle->points[2].b_div_z,
                 curr_triangle->points[2].tex_x_div_z,
                 curr_triangle->points[2].tex_y_div_z
-            }
+            },
+
+            curr_triangle->bitmap_ptr,
+            render_window.get_width(),
+            render_window.get_height()
         );
         
         itr ++;

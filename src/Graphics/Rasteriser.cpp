@@ -127,7 +127,10 @@ void draw_shaded_row(
     System::RenderWindow& window,
     int y,
     pixel_coord p1,
-    pixel_coord p2
+    pixel_coord p2,
+    Resources::TrueColourBitmap* bitmap_ptr,
+    int buffer_width,
+    int buffer_height
 ) {
     /*  To draw a perspective-correct row of a triangle, we need to determine
         the following properties for each pixel:
@@ -210,20 +213,53 @@ void draw_shaded_row(
         tex_x = tex_x_div_z / inv_z;
         tex_y = tex_y_div_z / inv_z;
 
-        /*  Mix colours. */
-
         /*  Check depth buffer and pixel coordinates. */
         double depth_buff_val = window.read_depth_buffer(i, y);
+        // std::cout << "Depth mine = " << std::to_string(inv_z) << " other = " << std::to_string(depth_buff_val) << std::endl;
+        //std::cout << "i = " << std::to_string(i) << ", y = " << std::to_string(y) << ", buffer w,h = " << std::to_string(buffer_width) << ", " << std::to_string(buffer_height) << std::endl;
+        if (inv_z > depth_buff_val && i >= 0 && i < buffer_width && y >= 0 && y <= buffer_height) {
+            //std::cout << "display" << std::endl;
+            double mix_r = r;
+            double mix_g = g;
+            double mix_b = b;
 
-        if (depth_buff_val == 0.0 || depth_buff_val < inv_z) {
+            /*  Check if textures are used. */
+            if (bitmap_ptr != nullptr) {
+                /*  Mix texture colours and rgb values. */
+                int pixel_x = floor(tex_x * (bitmap_ptr->width - 1));
+                int pixel_y = floor(tex_y * (bitmap_ptr->height - 1));
+
+                if (pixel_x < 0) {
+                    pixel_x = 0;
+                } else if (pixel_x > bitmap_ptr->width - 1) {
+                    pixel_x = bitmap_ptr->width - 1;
+                }
+
+                if (pixel_y < 0) {
+                    pixel_y = 0;
+                } else if (pixel_y > bitmap_ptr->height - 1) {
+                    pixel_y = bitmap_ptr->height - 1;
+                }
+
+                pixel_y = bitmap_ptr->height - 1 - pixel_y;
+
+                // std::cout << "Pix " << std::to_string(pixel_x) << " " << std::to_string(pixel_y) << std::endl;
+
+                int pixel_index = pixel_y * bitmap_ptr->width + pixel_x;
+
+                mix_r = bitmap_ptr->pixels[pixel_index].r * (mix_r / 255.0);
+                mix_g = bitmap_ptr->pixels[pixel_index].g * (mix_g / 255.0);
+                mix_b = bitmap_ptr->pixels[pixel_index].b * (mix_b / 255.0);
+            }
+
             /*  Draw pixel. */
             draw_pixel(
                 window,
                 i,
                 y,
-                static_cast<uint8_t>(clamp(r * intensity, 0, 255)),
-                static_cast<uint8_t>(clamp(g * intensity, 0, 255)),
-                static_cast<uint8_t>(clamp(b * intensity, 0, 255))
+                static_cast<uint8_t>(clamp(mix_r * intensity, 0, 255)),
+                static_cast<uint8_t>(clamp(mix_g * intensity, 0, 255)),
+                static_cast<uint8_t>(clamp(mix_b * intensity, 0, 255))
             );
 
             window.write_depth_buffer(i, y, inv_z);
@@ -248,7 +284,10 @@ void draw_shaded_triangle(
     System::RenderWindow& window,
     pixel_coord p1,
     pixel_coord p2,
-    pixel_coord p3
+    pixel_coord p3,
+    Resources::TrueColourBitmap* bitmap_ptr,
+    int buffer_width,
+    int buffer_height
 ) {
     /*  Order points by y - p1 should be the lowest point, p2 the middle and
         p3 the highest (numerically speaking, in pixel space). */
@@ -271,9 +310,9 @@ void draw_shaded_triangle(
     }
 
     /*  Determine number of steps. */
-    int num_steps_1_2 = p2.y - p1.y;
-    int num_steps_1_3 = p3.y - p1.y;
-    int num_steps_2_3 = p3.y - p2.y;
+    int num_steps_1_2 = abs(p2.y - p1.y);
+    int num_steps_1_3 = abs(p3.y - p1.y);
+    int num_steps_2_3 = abs(p3.y - p2.y);
 
     /*  Due to our sorting, p1 -> p3 is the tallest side. If it's height is 0,
         then there is nothing to draw. */
@@ -459,14 +498,20 @@ void draw_shaded_triangle(
                     window,
                     i,
                     p_1_2,
-                    p_1_3
+                    p_1_3,
+                    bitmap_ptr,
+                    buffer_width,
+                    buffer_height
                 );
             } else {
                 draw_shaded_row(
                     window,
                     i,
                     p_1_3,
-                    p_1_2
+                    p_1_2,
+                    bitmap_ptr,
+                    buffer_width,
+                    buffer_height
                 );
             }
 
@@ -570,14 +615,20 @@ void draw_shaded_triangle(
                     window,
                     i,
                     p_2_3,
-                    p_1_3
+                    p_1_3,
+                    bitmap_ptr,
+                    buffer_width,
+                    buffer_height
                 );
             } else {
                 draw_shaded_row(
                     window,
                     i,
                     p_1_3,
-                    p_2_3
+                    p_2_3,
+                    bitmap_ptr,
+                    buffer_width,
+                    buffer_height
                 );
             }
 
