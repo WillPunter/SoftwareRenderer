@@ -2,7 +2,7 @@ Software Renderer:
 
 About: this project is a software renderer written in C++ for Linux systems using the X11 Windowing system.
 
-To run a demo, use `make models` in this repository. You can then use the WASD keys and the space bar to explore a 2d map.
+To run a demo, use `make worlds` in this repository. You can then use the WASD keys and the space bar to explore a 2d map.
 
 This project is work-in progress. A few of the TODOs are as follows:
 1) Sometimes minor scanline errors occur where two triangles meet - identify the source of this and fix.
